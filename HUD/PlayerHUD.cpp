@@ -3,6 +3,20 @@
 
 #include "PlayerHUD.h"
 
+void APlayerHUD::BeginPlay()
+{
+	Super::BeginPlay();
+	crosshairTexture = idleTexture;
+
+	if (HUDWdiget != nullptr)
+	{
+		currentWidget = CreateWidget<UUserWidget>(GetWorld(), HUDWdiget);
+
+		if (currentWidget)
+			currentWidget->AddToViewport();
+	}
+}
+
 void APlayerHUD::DrawHUD()
 {
 	Super::DrawHUD();

@@ -20,7 +20,6 @@ ANecromancerCharacter::ANecromancerCharacter()
 	// set our turn rates for input
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
-
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -29,8 +28,6 @@ ANecromancerCharacter::ANecromancerCharacter()
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
-	GetCharacterMovement()->JumpZVelocity = 600.f;
-	GetCharacterMovement()->AirControl = 0.2f;
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -48,9 +45,13 @@ ANecromancerCharacter::ANecromancerCharacter()
 
 	//Custom
 	bAim = false;
-	currentState = PlayerState::IDLE;
+	currentState = EPlayerState::IDLE;
 	hud = nullptr;
 	playerController = nullptr;
+	animInstance = nullptr;
+	colParams = FCollisionQueryParams::DefaultQueryParam;
+	interactable = nullptr;
+	baimingAtABloodPool = false;
 
 	projectileSummonLocation = CreateDefaultSubobject<USceneComponent>(TEXT("Projectile Summon Location"));
 	projectileSummonLocation->SetupAttachment(RootComponent,TEXT("RightHandSocket"));
@@ -58,6 +59,40 @@ ANecromancerCharacter::ANecromancerCharacter()
 	aimPartilces = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Aim Particle System"));
 	aimPartilces->SetupAttachment(projectileSummonLocation);
 
+	conjuror = CreateDefaultSubobject<USpellConjuror>(TEXT("Conjuror"));
+
+	uictrl = CreateDefaultSubobject<UPlayerUIController>(TEXT("UI Controller"));
+
+	//Stats
+	maxHP = 100.0f;
+	hp = 100.0f;
+	maxBP = 100.0f;
+	bp = 100.0f;
+    lineCastLength = 1000.0f;
+
+	currentAimSpell = EAimSpells::AIMNONE;
+	currentBloodSpell = EBloodSpells::BLOODNONE;
+	currentInnateSpell = EInnateSpells::INNATENONE;
+	currentStatusEffect = EStatusEffects::NONE; //Out of these 5, this is the only one that marks the status effect of the player
+	currentStatusDuration = EStatusDuration::MIN;
+}
+
+void ANecromancerCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	playerController = GetWorld()->GetFirstPlayerController();
+	hud = Cast<APlayerHUD>(playerController->GetHUD());
+
+	if (aimPartilces)
+	{
+		aimPartilces->DeactivateSystem();
+	}
+
+	animInstance = Cast<ULeahAnimInstance>(GetMesh()->GetAnimInstance());
+	SpellsInventory::GetInstance(); //Initiate instance
+
+	uictrl->SetHealthPercentage(1.0f);
+	uictrl->SetBloodPercentage(1.0f);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -67,8 +102,6 @@ void ANecromancerCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ANecromancerCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ANecromancerCharacter::MoveRight);
@@ -81,35 +114,77 @@ void ANecromancerCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 	PlayerInputComponent->BindAxis("LookUp", this, &ANecromancerCharacter::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &ANecromancerCharacter::LookUpAtRate);
 
-	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &ANecromancerCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &ANecromancerCharacter::TouchStopped);
-
-	// VR headset functionality
-	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ANecromancerCharacter::OnResetVR);
-
 	//Custom
 
 	PlayerInputComponent->BindAction("Aim", IE_Pressed, this,&ANecromancerCharacter::FlipAimState);
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ANecromancerCharacter::FlipAimState);
 
+	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ANecromancerCharacter::AimInteract);
+	PlayerInputComponent->BindAction("Heal", IE_Pressed, this, &ANecromancerCharacter::AimInteractHeal);
+
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ANecromancerCharacter::Shoot);
+
+	//Spells
+	PlayerInputComponent->BindAction("Aim1", IE_Pressed, this, &ANecromancerCharacter::CallAimSpell0);
+	PlayerInputComponent->BindAction("Aim2", IE_Pressed, this, &ANecromancerCharacter::CallAimSpell1);
+	PlayerInputComponent->BindAction("Aim3", IE_Pressed, this, &ANecromancerCharacter::CallAimSpell2);
+	PlayerInputComponent->BindAction("Aim4", IE_Pressed, this, &ANecromancerCharacter::CallAimSpell3);
+
+	PlayerInputComponent->BindAction("Blood1", IE_Pressed, this, &ANecromancerCharacter::CallBloodSpell0);
+	PlayerInputComponent->BindAction("Blood2", IE_Pressed, this, &ANecromancerCharacter::CallBloodSpell1);
+	PlayerInputComponent->BindAction("Blood3", IE_Pressed, this, &ANecromancerCharacter::CallBloodSpell2);
+	PlayerInputComponent->BindAction("Blood4", IE_Pressed, this, &ANecromancerCharacter::CallBloodSpell3);
+
+	//UI
+	PlayerInputComponent->BindAction("Pause", IE_Pressed, uictrl, &UPlayerUIController::PauseGame);
 }
 
 
-void ANecromancerCharacter::OnResetVR()
+void ANecromancerCharacter::Tick(float deltaTime_)
 {
-	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
-}
+	Super::Tick(deltaTime_);
 
-void ANecromancerCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		Jump();
-}
-
-void ANecromancerCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		StopJumping();
+	if (currentState == EPlayerState::AIM)
+	{
+		FHitResult aimHit;
+		FVector start = FollowCamera->GetComponentLocation();
+		FVector forward = FollowCamera->GetForwardVector();
+	
+		if (GetWorld()->LineTraceSingleByChannel(aimHit, start, forward*lineCastLength + start, ECC_WorldDynamic, colParams))
+		{
+			//DrawDebugLine(GetWorld(), start, forward*lineCastLength + start, FColor(0, 255, 0), false);
+			interactable = Cast <IInteractable>(aimHit.GetActor());
+;
+			if (interactable != nullptr)
+			{
+				if (interactable->React()) //True == bloodPool, false == enemy
+				{
+					hud->aimingAtBP();
+					if (!baimingAtABloodPool)
+						baimingAtABloodPool = true;
+				}
+				else
+				{
+					hud->aimingAtEnemy();
+					if (baimingAtABloodPool)
+						baimingAtABloodPool = false;
+				}
+			}
+			else
+			{
+				//If aiming at an actor that doesn't cast correctly, reset
+				hud->aimingAtIdle();
+				baimingAtABloodPool = false;
+			}
+		}
+		else
+		{ 
+			//If aiming at nothing, reset
+			hud->aimingAtIdle();
+			baimingAtABloodPool = false;
+			interactable = nullptr;
+		}
+	}
 }
 
 void ANecromancerCharacter::TurnAtRate(float Rate)
@@ -160,44 +235,41 @@ void ANecromancerCharacter::FlipAimState()
 	if (bAim) //Exit aim mode
 	{
 		if (hud)
+		{
 			hud->bDrawing = false;
+			hud->aimingAtIdle();
+		}
 		bAim = false;
-		FollowCamera->FieldOfView = 90.0f;
-		currentState = PlayerState::IDLE;
+		FollowCamera->FieldOfView = FMath::Lerp(FollowCamera->FieldOfView, 90.0f, 1.0f);
+		currentState = EPlayerState::IDLE;
 		bUseControllerRotationYaw = false;
 		aimPartilces->DeactivateSystem();
+		if (animInstance)
+			animInstance->baimMode = false;
+		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+		interactable = nullptr;  //Reset interactable
+		baimingAtABloodPool = false; //Reset baimingAtABloodPool
 	}
 	else //Enter aim mode
 	{
 		if (hud)
 			hud->bDrawing = true;
 		bAim = true;
-		GetController()->SetControlRotation(GetArrowComponent()->GetComponentRotation());
-		FollowCamera->FieldOfView = 60.0f;
-		currentState = PlayerState::AIM;
+		GetController()->SetControlRotation(FollowCamera->GetComponentRotation());
+		FollowCamera->FieldOfView = FMath::Lerp(FollowCamera->FieldOfView, 60.0f, 1.0f);
+		currentState = EPlayerState::AIM;
 		bUseControllerRotationYaw = true;
 		aimPartilces->ActivateSystem(true);
+		if (animInstance)
+			animInstance->baimMode = true;
+		GetCharacterMovement()->MaxWalkSpeed = 100.0f;
 	}
 }
 
-void ANecromancerCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-	playerController = GetWorld()->GetFirstPlayerController();
-	hud = Cast<APlayerHUD>(playerController->GetHUD());
-
-	if (hud)
-		UE_LOG(LogTemp, Warning, TEXT("Got HUD!"));
-
-	if (aimPartilces)
-	{
-		aimPartilces->DeactivateSystem();
-	}
-}
 
 void ANecromancerCharacter::Shoot()
 {
-	if (currentState == PlayerState::AIM)
+	if (currentState == EPlayerState::AIM)
 	{
 		FVector spawnPos = projectileSummonLocation->GetComponentLocation();
 		FRotator spawnRot = GetViewRotation();
@@ -205,3 +277,127 @@ void ANecromancerCharacter::Shoot()
 	}
 }
 
+void ANecromancerCharacter::AimInteract() //Pressing interact
+{
+	if (currentState == EPlayerState::AIM)
+	{
+		if (interactable && baimingAtABloodPool)
+		{
+			interactable->Interact(bp,true); //absorb blood points from the blood pool
+
+			if (bp >= maxBP)
+			{
+				bp = maxBP;
+				uictrl->SetBloodPercentage(1.0f);
+			}
+			else
+			{
+				uictrl->SetBloodPercentage(bp / maxBP);
+			}
+			UE_LOG(LogTemp, Warning, TEXT("New BPs = %f"), bp);
+		}
+	}
+}
+
+
+void ANecromancerCharacter::AimInteractHeal() //Pressing interact heal
+{
+	if (currentState == EPlayerState::AIM)
+	{
+		if (interactable && baimingAtABloodPool)
+		{
+			interactable->Interact(hp, false); //absorb blood points from the blood pool
+
+			if (hp >= maxHP)
+			{
+				hp = maxHP;
+				uictrl->SetHealthPercentage(1.0f);
+			}
+			else
+			{
+				uictrl->SetHealthPercentage(hp/maxHP);
+			}
+			UE_LOG(LogTemp, Warning, TEXT("New HPs = %f"), hp);
+
+		}
+	}
+}
+
+void ANecromancerCharacter::CallAimSpell(int index_)
+{
+	if (currentState == EPlayerState::AIM)
+	{
+		bool increaseHP = false;
+		float spellBaseDamage = 0.0f;
+		EStatusEffects effect = EStatusEffects::NONE;
+		if (SpellsInventory::GetInstance() && conjuror)
+		{
+			currentAimSpell = SpellsInventory::GetInstance()->UseAimSpell(index_, bp, increaseHP, spellBaseDamage, effect); //Check if we can use the spell
+			//TODO
+			//Add magic stat to spellBaseDamage
+
+			if (currentAimSpell != EAimSpells::AIMNONE)
+			{
+				conjuror->ConjourAimSpell(currentAimSpell, GetActorLocation(), increaseHP, hp, spellBaseDamage, effect, currentStatusDuration); //Conjur the spell
+				uictrl->SetBloodPercentage(bp / maxBP);
+				if (increaseHP) //Only if we increased our health, update UI.
+				{
+					uictrl->SetHealthPercentage(hp / maxHP);
+				}
+			}
+		}
+	}
+}
+void ANecromancerCharacter::CallBloodSpell(int index_)
+{
+
+}
+void ANecromancerCharacter::CallInnateSpell()
+{
+
+}
+
+UPlayerUIController* ANecromancerCharacter::GetUIController() const
+{
+	return uictrl;
+}
+
+#pragma region InputSpellFunctions
+
+
+void ANecromancerCharacter::CallAimSpell0()
+{
+	CallAimSpell(0);
+}
+void ANecromancerCharacter::CallAimSpell1()
+{
+	CallAimSpell(1);
+}
+void ANecromancerCharacter::CallAimSpell2()
+{
+	CallAimSpell(2);
+}
+void ANecromancerCharacter::CallAimSpell3()
+{
+	CallAimSpell(3);
+}
+
+void ANecromancerCharacter::CallBloodSpell0()
+{
+	CallBloodSpell(0);
+}
+void ANecromancerCharacter::CallBloodSpell1()
+{
+	CallBloodSpell(1);
+}
+void ANecromancerCharacter::CallBloodSpell2()
+{
+	CallBloodSpell(2);
+}
+void ANecromancerCharacter::CallBloodSpell3()
+{
+	CallBloodSpell(3);
+}
+
+
+#pragma endregion
