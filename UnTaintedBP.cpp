@@ -5,22 +5,15 @@
 
 AUnTaintedBP::AUnTaintedBP() : ABloodPool()
 {
-	PrimaryActorTick.bCanEverTick = true;
-
-	root = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-	RootComponent = root;
-
-	mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	mesh->SetCollisionProfileName("BlockAll");
-	mesh->SetGenerateOverlapEvents(true);
-	mesh->SetupAttachment(root);
-
 	bloodPoints = healthPoints = 20.0f;
 }
 
 void AUnTaintedBP::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (particles)
+		particles->DeactivateSystem();
 }
 
 void AUnTaintedBP::Tick(float deltaTime_)
@@ -30,13 +23,21 @@ void AUnTaintedBP::Tick(float deltaTime_)
 
 void AUnTaintedBP::Interact(float& value_, bool bp_)
 {
-	if (bp_) //If true, increase BPs, otherwise, increase health
+	if (!bAbsorbed)
 	{
-		value_ += bloodPoints;
+		UE_LOG(LogTemp, Warning, TEXT("Interacted with untainted BP"));
+		if (particles)
+		{			
+			particles->ActivateSystem(true);
+		}
+		if (bp_) //If true, increase BPs, otherwise, increase health
+		{
+			value_ += bloodPoints;
+		}
+		else
+		{
+			value_ += healthPoints;
+		}
+		Super::Absorbed();
 	}
-	else
-	{
-		value_ += healthPoints;
-	}
-	Super::Absorbed();
 }

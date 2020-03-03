@@ -16,5 +16,4 @@ class NECROMANCER_API ATaintedBP : public ABloodPool
 		ATaintedBP();
 		virtual void BeginPlay() override;
 		virtual void Tick(float DeltaTime) override;
-		virtual void Interact() override;
 };

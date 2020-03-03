@@ -5,7 +5,6 @@
 
 ATaintedBP::ATaintedBP() : ABloodPool()
 {
-	PrimaryActorTick.bCanEverTick = true;
 }
 
 void ATaintedBP::BeginPlay()
@@ -16,9 +15,4 @@ void ATaintedBP::BeginPlay()
 void ATaintedBP::Tick(float deltaTime_)
 {
 	Super::Tick(deltaTime_);
-}
-
-void ATaintedBP::Interact()
-{
-	Super::Absorbed();
 }

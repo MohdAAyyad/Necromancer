@@ -10,15 +10,20 @@ TUniquePtr<SpellsInventory, TDefaultDelete<SpellsInventory>> SpellsInventory::in
 
 SpellsInventory::SpellsInventory()
 {
-	aimSpellsCount = 2;
-	bloodSpellsCount = 2;
+	aimSpellsCount = 3;
+	bloodSpellsCount = 3;
 	maxAimSpellsCount = 4;
 	maxBloodSpellsCount = 4;
 	currentInnateSpell = EInnateSpells::INNATENONE;
 
-	EquipNewAimSpell(EAimSpells::BLOODRAIN);
-	EquipNewAimSpell(EAimSpells::BLOODSPEAR);
-	EquipNewAimSpell(EAimSpells::BLOODSPRAY);
+	UnlockAimSpell(EAimSpells::BLOODSHOT);
+	UnlockAimSpell(EAimSpells::BLOODROCKET);
+	UnlockAimSpell(EAimSpells::BLOODTIMEBOMB);
+
+	UnlockBloodSpell(EBloodSpells::BLOODMIASMA);
+	UnlockBloodSpell(EBloodSpells::SERVEINDEATH);
+	UnlockBloodSpell(EBloodSpells::BLOODTORNADO);
+	UnlockBloodSpell(EBloodSpells::BLOODEXPLOSION);
 }
 
 SpellsInventory::~SpellsInventory()
@@ -50,44 +55,54 @@ bool SpellsInventory::IncreaseAimSpellCount() //Called when the player increases
 	return false;
 }
 
-bool SpellsInventory::EquipNewAimSpell(const EAimSpells spell_) //Called when the player equips a new aim spell
+bool SpellsInventory::EquipNewAimSpell(const int index_) //Called when the player equips a new aim spell
 {
-	if (aimSpells.Num() + 1 <= aimSpellsCount)
+	if (aimSpells.Num() + 1 <= aimSpellsCount && index_<=unlockedAimSpells.Num()-1 && index_>=0)
 	{
-		aimSpells.Add(spell_);
-		aimSpellsCount++;
-		return true;
+		if (!aimSpells.Contains(unlockedAimSpells[index_]))
+		{
+			aimSpells.Add(unlockedAimSpells[index_]);
+			return true;
+		}
 	}
 	return false;
 }
 void SpellsInventory::RemoveAimSpell(const int index_) //Called when the player unequips a new aim spell
 {
-	if(aimSpells.Num() > 0)
+	if(aimSpells.Num() > 0 && index_ <= aimSpells.Num() - 1 && index_ >= 0)
 	   aimSpells.RemoveAt(index_);
 }
 
-EAimSpells SpellsInventory::UseAimSpell(const int index_, float& currentBP_, bool& increaseHP_, float& spellBaseDamge_,EStatusEffects& status_)
+EAimSpells SpellsInventory::GetAimSpell(const int index_)
 {
-	if (index_ <= aimSpells.Num() - 1)
+	if (index_ <= aimSpells.Num() - 1 && index_ >= 0)
 	{
-		int cost = GetAimSpellCost(aimSpells[index_]); //Also updates bSpellIncreasesHealth
-		//Player can only equip and remove spells which ensures they're always ordered sequentially. The UI should reflect the order correctly whenever the player does any of those actions
-		if (currentBP_ >= cost) //Do we have enough BP?
-		{
-			currentBP_ -= cost;
-			//TODO
-		//update the variabls passed in by reference
-		//spellBaseDamage_ will be filled by the spell's base damage. In NecromancerCharacter.cpp this will be added to character magic stat which will be added to this file
-			increaseHP_ = bSpellIncreasesHealth;
-			//TODO
-
-			if (bSpellIncreasesHealth)
-				bSpellIncreasesHealth = false;
-
-			return aimSpells[index_];
-		}
+		return aimSpells[index_];
 	}
-		return EAimSpells::AIMNONE;
+	return EAimSpells::AIMNONE;
+}
+
+EAimSpells SpellsInventory::GetAimSpellForTexture(int index_)
+{
+	if (index_ <= unlockedAimSpells.Num() - 1 && index_ >= 0)
+	{
+		return unlockedAimSpells[index_];
+	}
+	return EAimSpells::AIMNONE;
+}
+
+EAimSpells SpellsInventory::GetEquippedAimSpellForTexture(int index_)
+{
+	if (index_ <= aimSpells.Num() - 1 && index_ >= 0)
+	{
+		return aimSpells[index_];
+	}
+	return EAimSpells::AIMNONE;
+}
+
+void SpellsInventory::UnlockAimSpell(EAimSpells spell_)
+{
+	unlockedAimSpells.Add(spell_);
 }
 #pragma endregion
 
@@ -103,167 +118,109 @@ bool SpellsInventory::IncreaseBloodSpellCount()//Called when the player increase
 	return false;
 }
 
-bool SpellsInventory::EquipNewBloodSpell(const EBloodSpells spell_) //Called when the player equips a new blood spell
+bool SpellsInventory::EquipNewBloodSpell(const int index_) //Called when the player equips a new blood spell
 {
-	if ( bloodSpells.Num() + 1 <= bloodSpellsCount)
+	if ( bloodSpells.Num() + 1 <= bloodSpellsCount && index_ <= unlockedBloodSpells.Num() - 1 && index_ >= 0)
 	{
-		bloodSpells.Add(spell_);
-		bloodSpellsCount++;
-		return true;
+		if (!bloodSpells.Contains(unlockedBloodSpells[index_]))
+		{
+			bloodSpells.Add(unlockedBloodSpells[index_]);
+			return true;
+		}
 	}
 	return false;
 }
 
 void SpellsInventory::RemoveBloodSpell(const int index_) //Called when the player unequips a new blood spell
 {
-	if(bloodSpells.Num() > 0)
+	if(bloodSpells.Num() > 0 && index_ <= bloodSpells.Num() - 1 && index_ >= 0)
 	    bloodSpells.RemoveAt(index_);
 }
 
-EBloodSpells SpellsInventory::UseBloodSpell(const int index_, float& currentBP_, bool& increaseHP_, float& spellBaseDamge_, EStatusEffects& status_)
+EBloodSpells SpellsInventory::GetBloodSpell(const int index_, bool& corpseSpell_)
 {
-	if (index_ <= bloodSpells.Num() - 1)
+	if (index_ <= bloodSpells.Num() - 1 && index_ >= 0)
 	{
-		int cost = GetBloodSpellCost(bloodSpells[index_]); //Also updates bSpellIncreasesHealth
-														 //Player can only equip and remove spells (no swapping) which ensures they're always ordered sequentially. The UI should reflect the order correctly whenever the player does any of those actions
-		if (currentBP_ >= cost) //Do we have enough BP?
+		switch (bloodSpells[index_]) //Check if the spell is a corpse spell
 		{
-			currentBP_ -= cost;
-			//TODO
-		//update the variabls passed in by reference
-			increaseHP_ = bSpellIncreasesHealth;
-			//TODO
-
-			if (bSpellIncreasesHealth)
-				bSpellIncreasesHealth = false;
-
-			return bloodSpells[index_];
+		case EBloodSpells::SERVEINDEATH:
+			corpseSpell_ = true;
+			break;
+		case EBloodSpells::BLOODEXPLOSION:
+			corpseSpell_ = true;
+			break;
+		default:
+			corpseSpell_ = false;
+			break;
 		}
+
+		return bloodSpells[index_];
 	}
 	return EBloodSpells::BLOODNONE;
 }
 
+EBloodSpells SpellsInventory::GetBloodSpellForTexture(int index_)
+{
+	if (index_ <= unlockedBloodSpells.Num() - 1 && index_ >= 0)
+	{
+		return unlockedBloodSpells[index_];
+	}
+	return EBloodSpells::BLOODNONE;
+}
+
+EBloodSpells SpellsInventory::GetEquippedBloodSpellForTexture(int index_)
+{
+	if (index_ <= bloodSpells.Num() - 1 && index_ >= 0)
+	{
+		return bloodSpells[index_];
+	}
+	return EBloodSpells::BLOODNONE;
+}
+
+void SpellsInventory::UnlockBloodSpell(EBloodSpells spell_)
+{
+	unlockedBloodSpells.Add(spell_);
+}
 #pragma endregion
 
 #pragma region Innate
 
-bool  SpellsInventory::EquipNewInnateSpell(const EInnateSpells spell_)
+bool  SpellsInventory::EquipNewInnateSpell(const int index_)
 {
-	if (currentInnateSpell == INNATENONE)
+	if (currentInnateSpell == EInnateSpells::INNATENONE && index_<=unlockedInnateSpells.Num()-1 && index_ >= 0)
 	{
-		currentInnateSpell = spell_;
+		currentInnateSpell = unlockedInnateSpells[index_];
 		return true;
 	}
 	return false;
 }
 void  SpellsInventory::RemoveInnateSpell()
 {
-	currentInnateSpell = INNATENONE;
+	currentInnateSpell = EInnateSpells::INNATENONE;
 }
 
-bool SpellsInventory::UseInnateSpell(float& currentBP_, bool& damagesPlayer_, float& currentHP_ , bool& increaseHP_, float& spellBaseDamage_, EStatusEffects& status_)
+EInnateSpells SpellsInventory::GetInnateSpell()
 {
-	if (currentInnateSpell != EInnateSpells::INNATENONE)
-	{
-		int cost = GetInnateSpellCost(currentInnateSpell, damagesPlayer_);
-		if (damagesPlayer_) //If damagesPlayer_ is set true, NecroCharacter should play a takeDamage effect on the player
-		{
-			if (currentHP_ - cost > 0.0f) //Don't die
-			{
-				currentHP_ -= cost;
-				currentBP_ += cost * 2.0f;
-				return false; //False is returned if the spell failed, or if you are not healing. i.e. no need to call conjuror
-			}
-			else
-			{
-				damagesPlayer_ = false; //If current health - cost will be less than zero, don't run damage effect
-				return false;
-			}
-		}
-		else
-		{
-			if (currentBP_ >= cost)
-			{
-				currentBP_ -= cost;
-				return true; //Necro Character will call conjuror
-			}
-		}
-	}
-
-	return false;	
+	return currentInnateSpell;
 }
 
-#pragma endregion
-
-#pragma region SpellCost
-
-float SpellsInventory::GetAimSpellCost(const EAimSpells spell_)
+EInnateSpells SpellsInventory::GetInnateSpellForTexture(int index_)
 {
-	switch (spell_)
+	if (index_ <= unlockedInnateSpells.Num() - 1 && index_ >= 0)
 	{
-	case BLOODSPEAR:
-		return 10.0f;
-		break;
-	case BLOODRAIN:
-		return 10.0f;
-		break;
-	case BLOODSPRAY:
-		return 10.0f;
-		break;
-	case ISEEDEATH:
-		return 10.0f;
-		break;
-	case SERVEINDEATH:
-		return 10.0f;
-		break;
-	case EYESOFBLOOD:
-		return 10.0f;
-		break;
-	case SWARM:
-		bSpellIncreasesHealth = true;
-		return 10.0f;
-		break;
-	default:
-		return 0.0f;
-		break;
+		return unlockedInnateSpells[index_];
 	}
-	return 0.0f;
+	return EInnateSpells::INNATENONE;
 }
 
-float SpellsInventory::GetBloodSpellCost(const EBloodSpells spell_)
+EInnateSpells SpellsInventory::GetEquippedInnateSpellForTexture()
 {
-	switch (spell_)
-	{
-	default:
-	case SKELETONHANDS:
-		return 10.0f;
-		break;
-	case BLOODTRAP:
-		return 10.0f;
-		break;
-	case BLOODPYRE:
-		return 10.0f;
-		break;
-	case BLOODBLOAT:
-		return 10.0f;
-		break;
-		return 0.0f;
-		break;
-	}
+	return currentInnateSpell;
 }
 
-float SpellsInventory::GetInnateSpellCost(const EInnateSpells spell_, bool& damagesplayer_)
+void SpellsInventory::UnlockInnateSpell(EInnateSpells spell_)
 {
-	switch (spell_)
-	{
-	case FLESHISASERVANT:
-		damagesplayer_ = true;
-	return 10.0f;
-	break;
-	default:
-		return 0.0f;
-	}
-	return 0.0f;
+	unlockedInnateSpells.Add(spell_);
 }
 
 #pragma endregion

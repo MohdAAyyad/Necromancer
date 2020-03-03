@@ -10,31 +10,31 @@
  * 
  */
 UENUM(blueprintType)
-enum EAimSpells
+enum class EAimSpells : uint8
 {
-AIMNONE,
-BLOODSPEAR, // Conjures a medium range spear of blood that can damage two enemies in a row and ignores cover.
-BLOODRAIN, //Shoots a continuous stream of Blood Particles where the player is aiming. Player cannot leave aim mode while this is running.
-BLOODSPRAY, //Targeted enemy will explode upon death damaging nearby enemies and creating a large untainted blood pool.
-ISEEDEATH, //Enemy targeted by this gets paralyzed with fear for a short amount of time.
-SERVEINDEATH, //Turns a dead body into a zombie that attacks the enemy closest to it and lasts for a short amount of time.
-EYESOFBLOOD, //Targeted Enemy becomes blinded for a short amount of time, and they are unable to damage the player.
-SWARM // Player summons mosquitoes that suck the blood from the targeted enemy around. Recovers health.
+AIMNONE = 0,
+BLOODSHOT = 1, // Fires a short range blood splash (similar to a shotgun). High damage, low range
+BLOODROCKET = 2, //Shoots a rocket that has splash damage
+BLOODTIMEBOMB = 3, //Shoots a sticky bomb that has splash damage
+ISEEDEATH = 4, //Enemy targeted by this gets paralyzed with fear for a short amount of time. 
+EYESOFBLOOD = 5, //Targeted Enemy becomes blinded for a short amount of time, and they are unable to damage the player.
+SWARM = 6 // Player summons mosquitoes that suck the blood from the targeted enemy around. Recovers health.
 };
 
 UENUM(blueprintType)
-enum EBloodSpells
+enum class EBloodSpells : uint8
 {
-	BLOODNONE,
-	SKELETONHANDS, // Summons skeleton hands in the blood pool that stop enemies in their tracks for a duration of time.
-	BLOODTRAP, // Turns blood pools into acid damaging enemies that pass through them.
-	BLOODPYRE, //Turns blood pools into revolving pyres that move around damaging enemies.
-	BLOODBLOAT, //Turns the blood pool into a bloated creature that explodes near enemies or after a certain amount of time has passed creating a larger TAINTED blood pool.
+	BLOODNONE = 0,
+	BLOODMIASMA = 1, // Summons a misama cloud above a blood pool or a corpse
+	BLOODTORNADO = 2, //Summon tornado
+	SERVEINDEATH = 3, //Turns a dead body into a zombie that attacks the enemy closest to it and lasts for a short amount of time.
+	BLOODEXPLOSION = 4 //Makes a corpse or a zombie or a zombie explode
+
 };
 
 UENUM(blueprintType)
-enum EInnateSpells
+enum class EInnateSpells : uint8
 {
-	INNATENONE,
-	FLESHISASERVANT //Leah uses her knife to cut herself which lowers HP and restores Blood Points. The amount of Blood Points gained this way can be upgraded in the skill tree, however, the amount of health consumed is always 20% or more of the player’s health.
+	INNATENONE = 0,
+	FLESHISASERVANT = 1 //Leah uses her knife to cut herself which lowers HP and restores Blood Points. The amount of Blood Points gained this way can be upgraded in the skill tree, however, the amount of health consumed is always 20% or more of the player’s health.
 };

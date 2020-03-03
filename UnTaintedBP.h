@@ -22,5 +22,7 @@ protected:
 
 		float bloodPoints; //The amount of BPs this pool gives
 		float healthPoints; //The amount of HPs this pool gives
+
+
 	
 };

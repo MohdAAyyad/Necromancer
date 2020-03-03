@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "Spells.h"
 #include "StatusEffects.h"
+#include "AimProjectile.h"
 #include "SpellConjuror.generated.h"
 
 
@@ -17,12 +18,19 @@ class NECROMANCER_API USpellConjuror : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	USpellConjuror();
-	void ConjourAimSpell(EAimSpells spell_, FVector spawnLocation_, bool increaseHP_, float& currentHP_, float damage, EStatusEffects status_, EStatusDuration duration_);
-	void ConjourBloodSpell(EBloodSpells spell_, FVector spawnLocation_, bool increaseHP_, float& currentHP_, float damage, EStatusEffects status_, EStatusDuration duration_);
+	void ConjurAimSpell(EAimSpells spell_, FVector spawnLocation_, FRotator spawnRotation_, bool increaseHP_, float& currentHP_, float damage, EStatusEffects status_, EStatusDuration duration_);
+	void ConjurBloodSpell(EBloodSpells spell_, FVector spawnLocation_, FRotator spawnRotation_, bool increaseHP_, float& currentHP_, float damage, EStatusEffects status_, EStatusDuration duration_);
+	void ConjurInnateSpell(EInnateSpells spell_, FVector spawnLocation_, EStatusEffects status_, EStatusDuration duration_);
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
+	UPROPERTY(EditDefaultsOnly, Category = Spells)
+	TArray<TSubclassOf<class AAimProjectile>> aimSpellProjectiles;
+
+	UPROPERTY(EditDefaultsOnly, Category = Spells)
+	TArray<TSubclassOf<class AAimProjectile>>  bloodSpellProjectiles;
 
 public:	
 	// Called every frame

@@ -14,6 +14,7 @@
 #include "DrawDebugHelpers.h"
 #include "Spells.h"
 #include "SpellsInventory.h"
+#include "SpellCheck.h"
 #include "StatusEffects.h"
 #include "SpellConjuror.h"
 #include "HUD/PlayerUIController.h"
@@ -82,9 +83,12 @@ public:
 	{
 		IDLE,
 		AIM,
+		DASH,
+		HIT,
 		DEATH
 	};
 
+	bool bCastingSpell; //Used to make sure the player doesn't move while casting
 protected:
 	void BeginPlay() override;
 
@@ -92,12 +96,17 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	bool bAim;
 	EPlayerState currentState;
+	EPlayerState prevState;
 	void FlipAimState();
 
 	float lineCastLength;
 	FCollisionQueryParams colParams;
 	IInteractable* interactable;
-	bool baimingAtABloodPool;
+	bool bAimingAtABloodPool;
+	bool bAimingAtEnemy;//Need to know when aiming at an enemy for corpse manipulator spells
+	FVector bloodSpellLocation;
+	bool corpseSpell; //Check if we're doing a corpse spell or a regular blood spell
+	class AEnemyBase* enemy;
 
 
 	APlayerHUD* hud;
@@ -111,8 +120,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 		TSubclassOf<class AAimProjectile> projectile;
 
-	UFUNCTION()
-		void Shoot();
+
 	UFUNCTION()
 		void AimInteract();
 	UFUNCTION()
@@ -126,12 +134,12 @@ protected:
 	float maxBP;
 	float bp;
 
-	EAimSpells currentAimSpell; //Updated from spells inventory with the player's input --> Player presses 1 for example --> call use spell and populate the variable --> pass in the variable to the conjuror
+	EAimSpells currentAimSpell; //Updated from spells inventory with the player's input --> Player presses 1 for example --> call use spell and populate the variable --> play animation --> pass in the variables to the conjuror
 	EBloodSpells currentBloodSpell;//Updated from spells inventory with the player's input
-	EInnateSpells currentInnateSpell;//Updated from spells inventory with the player's input
+	EInnateSpells currentInnateSpell;//Updated from spells inventory with the player's input --> This is equipped directly, not through a use function --> Confusing a bit, but it's because there's always only one equipped innate skill
 	EStatusEffects currentStatusEffect;//Updated by inventory UseSpell functions
 	EStatusDuration currentStatusDuration; //Updated by leveling up. Starts at MIN and scales with the player's stats
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	USpellConjuror* conjuror;
 
 	//UI
@@ -141,8 +149,24 @@ protected:
 	UFUNCTION(BlueprintCallable)
 		UPlayerUIController* GetUIController() const;
 
+	//Dashing
 
+	UPROPERTY(EditAnywhere)
+		float dashDistance;
 
+	UPROPERTY(EditAnywhere)
+		UParticleSystem* magicCircle; //A magic circle is spawned on the bloodpool before the spell
+
+	UFUNCTION()
+		void Dash();
+	FVector dashVec;
+	float dashTime;
+	FTimerHandle dashTimeHandler;
+
+	//Spells
+	bool increaseHP;
+	float spellBaseDamage;
+	EStatusEffects effect;
 	//Spell functions
 	void CallAimSpell(int index_);
 	void CallBloodSpell(int index_);
@@ -157,4 +181,33 @@ protected:
 	void CallBloodSpell1();
 	void CallBloodSpell2();
 	void CallBloodSpell3();
+
+
+
+	//------Animation functions
+
+	UFUNCTION(BlueprintCallable)
+	void AnimShoot();
+	UFUNCTION(BlueprintCallable)
+	void AnimShootProjectile();
+
+	UFUNCTION(BlueprintCallable)
+		void ConjurAimSpell();
+	UFUNCTION(BlueprintCallable)
+		void ConjurBloodSpell();
+
+	public:
+		void TakeDamage(float damage_);
+
+		void MoveDueToDash(); //Called from animation
+		void EndDash();
+
+		void EndHit();
+
+		void ConjurSpell();
+
+		//Wall
+		UFUNCTION()
+			void SpawnWall();
+		void PlayWallAnimation();
 };

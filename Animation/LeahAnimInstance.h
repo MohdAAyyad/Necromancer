@@ -15,6 +15,7 @@ class NECROMANCER_API ULeahAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 protected:
 		APawn* player;
+		class ANecromancerCharacter* necro;
 		ULeahAnimInstance();
 
 public:
@@ -32,9 +33,47 @@ public:
 		UPROPERTY(EditAnywhere, BlueprintReadOnly)
 			float aimBackSpeed;
 		UPROPERTY(EditAnywhere, BlueprintReadOnly)
-			bool baimMode;
+			bool baimMode; //True: Player aims, false: player idle
+		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+			bool banimAimShoot; //Becomes true when player shoots and false when animation ends
+
+		UPROPERTY(EditAnywhere, BlueprintReadOnly)
+			bool bHit; //True when the player gets hit
+
+		UPROPERTY(EditAnywhere, BlueprintReadOnly)
+			bool bDash;
+
+
+		//Spells
+		UPROPERTY(EditAnywhere, BlueprintReadOnly)
+			bool buseSpell1;
+		UPROPERTY(EditAnywhere, BlueprintReadOnly)
+			bool buseSpell2;
+		UPROPERTY(EditAnywhere, BlueprintReadOnly)
+			bool buseBloodSpell1;
+		UPROPERTY(EditAnywhere, BlueprintReadOnly)
+			bool buseBloodSpell2;
+
+		//Wall
+		UPROPERTY(EditAnywhere, BlueprintReadOnly)
+			bool bwall;
+
 
 		UFUNCTION(BlueprintCallable, Category = "UpdateAnimationProperties")
 			void UpdateAnimationProperties();
+		
+		UFUNCTION(BlueprintCallable)
+			void ResetSpellAnimation();
+
+		UFUNCTION(BlueprintCallable)
+			void ResetHit();
+		UFUNCTION(BlueprintCallable)
+			void ResetDash();
+		UFUNCTION(BlueprintCallable)
+			void MoveDash();
+		UFUNCTION(BlueprintCallable)
+			void ConjurSpell();
+		UFUNCTION(BlueprintCallable)
+			void SpawnWall();
 
 };

@@ -8,6 +8,9 @@
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Engine/Classes/Particles/ParticleSystemComponent.h"
+#include "Engine/Classes/Kismet/GameplayStatics.h"
+#include "StatusEffects.h"
+#include "DestructibleProp.h"
 #include "AimProjectile.generated.h"
 
 UCLASS()
@@ -41,6 +44,32 @@ protected:
 		class UProjectileMovementComponent* movement;
 	UPROPERTY(EditAnywhere)
 		UParticleSystemComponent* particles;
+	UPROPERTY(EditAnywhere, Category = "Impact")
+		UParticleSystem* impact;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		UMaterialInterface* decalMaterial;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		float damage;
+
+	EStatusEffects effect;
+	EStatusDuration duration;
+	float durationInSeconds;
+
+
+protected:
+	UFUNCTION()
+		virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent,
+			AActor* OtherActor,
+			UPrimitiveComponent* OtherComp,
+			int32 OtherBodyIndex,
+			bool bFromSweep,
+			const FHitResult &SweepResult);
+
+
+	virtual void BindSphere();
+
+	virtual void AddDamageModifier(float damageModifier_);
+	virtual void SetEffectAndDuration(EStatusEffects effect_, EStatusDuration duration_);
 
 };

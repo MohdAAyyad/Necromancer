@@ -22,9 +22,8 @@ class NECROMANCER_API IInteractable
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	UFUNCTION()
-	virtual void Interact() = 0;
+	virtual void Interact() = 0; //Interact with the object
 	virtual void Interact(float& value_, bool bp_) = 0;
-	UFUNCTION()
-	virtual bool React() = 0;
+	virtual bool React() = 0; //React for the crosshair
+	virtual void WallAction() = 0; //Bloodpools spawn walls, walls destroy themselves
 };
