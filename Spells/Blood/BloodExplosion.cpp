@@ -31,7 +31,7 @@ void ABloodExplosion::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			}
 			else if (!enemy->IsDead())
 			{
-				enemy->TakeSpellDamage(damage, EStatusEffects::NONE, 0.0f);
+				enemy->TakeSpellDamage(damage);
 			}
 
 		}

@@ -25,9 +25,9 @@ void ABloodShot::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 
 		if (enemy)
 		{
-			if (!enemy->IsDead())
+			if (!enemy->IsDead() && !enemy->bZombie)
 			{
-				enemy->TakeSpellDamage(damage, EStatusEffects::NONE, 0.0f);
+				enemy->TakeSpellDamage(damage);
 				sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			}
 		}

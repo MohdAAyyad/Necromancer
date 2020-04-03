@@ -36,9 +36,9 @@ void ABloodTornado::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 
 		AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_);
 
-		if (enemy)
+		if (enemy && !enemy->IsDead() && !enemy->bZombie)
 		{
-			enemy->TakeSpellDamage(damage,EStatusEffects::NONE,0.0f);
+			enemy->TakeSpellDamage(damage);
 		}
 		else
 		{

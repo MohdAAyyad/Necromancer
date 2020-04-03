@@ -8,6 +8,7 @@ TUniquePtr<SpellCheck, TDefaultDelete<SpellCheck>>SpellCheck::instance = nullptr
 SpellCheck::SpellCheck()
 {
 	bSpellIncreasesHealth = false;
+	bSpellIsASummon = false;
 }
 
 SpellCheck::~SpellCheck()
@@ -18,7 +19,7 @@ SpellCheck::~SpellCheck()
 
 bool SpellCheck::CheckForAimSpell(const EAimSpells spell_, float& currentBP_, bool& increaseHP_, float& spellBaseDamage_, EStatusEffects& status_)
 {
-	int cost = GetAimSpellCost(spell_); //Also updates bSpellIncreasesHealth
+	int cost = GetAimSpellCost(spell_, spellBaseDamage_); //Also updates bSpellIncreasesHealth
 
 	if (currentBP_ >= cost) //Do we have enough BP?
 	{
@@ -35,21 +36,28 @@ bool SpellCheck::CheckForAimSpell(const EAimSpells spell_, float& currentBP_, bo
 
 	return false;
 }
-float SpellCheck::GetAimSpellCost(const EAimSpells spell_)
+float SpellCheck::GetAimSpellCost(const EAimSpells spell_, float& spellBaseDamage_)
 {
+	//Check for cost and add the spell's damage to the player's basic magic damage stat
 	switch (spell_)
 	{
 	case EAimSpells::BLOODSHOT:
+		spellBaseDamage_ += 70.0f;
 		return 10.0f;
 	case EAimSpells::BLOODROCKET:
+		spellBaseDamage_ += 50.0f;
 		return 10.0f;
 	case EAimSpells::BLOODTIMEBOMB:
+		spellBaseDamage_ += 50.0f;
 		return 10.0f;
 	case EAimSpells::ISEEDEATH:
+		spellBaseDamage_ = 0.0f;
 		return 10.0f;
 	case EAimSpells::EYESOFBLOOD:
+		spellBaseDamage_ = 0.0f;
 		return 10.0f;
 	case EAimSpells::SWARM:
+		spellBaseDamage_ = 0.0f;
 		bSpellIncreasesHealth = true;
 		return 10.0f;
 	default:
@@ -61,37 +69,41 @@ float SpellCheck::GetAimSpellCost(const EAimSpells spell_)
 
 #pragma region Blood
 
-bool SpellCheck::CheckForBloodSpell(const EBloodSpells spell_, float& currentBP_, bool& increaseHP_, float& spellBaseDamage_, EStatusEffects& status_)
+bool SpellCheck::CheckForBloodSpell(const EBloodSpells spell_, float& currentBP_, bool& isASummon_, float& spellBaseDamage_, EStatusEffects& status_)
 {
-	int cost = GetBloodSpellCost(spell_); //Also updates bSpellIncreasesHealth
+	int cost = GetBloodSpellCost(spell_, spellBaseDamage_); //Also updates bSpellIsASummon
 
 	if (currentBP_ >= cost) //Do we have enough BP?
 	{
 		currentBP_ -= cost;
-		//TODO
-	//update the variabls passed in by reference
-	//spellBaseDamage_ will be filled by the spell's base damage. In NecromancerCharacter.cpp this will be added to character magic stat which will be added to this file
-		increaseHP_ = bSpellIncreasesHealth;
-		//TODO
-		bSpellIncreasesHealth = false; //Reset variable
+		isASummon_ = bSpellIsASummon;
+		bSpellIsASummon = false; //Reset variable
 
 		return true;
 	}
 
 	return false;
 }
-float SpellCheck::GetBloodSpellCost(const EBloodSpells spell_)
+float SpellCheck::GetBloodSpellCost(const EBloodSpells spell_, float& spellBaseDamage_)
 {
 	switch (spell_)
 	{
 	case EBloodSpells::BLOODMIASMA:
+		spellBaseDamage_ = 0; //Miasma doesn't do any direct damage, only poison damage
 		return 10.0f;
 	case EBloodSpells::SERVEINDEATH:
+		spellBaseDamage_ = 0;
 		return 10.0f;
 	case EBloodSpells::BLOODEXPLOSION:
+		spellBaseDamage_ += 50.0f;
 		return 10.0f;
 	case EBloodSpells::BLOODTORNADO:
+		spellBaseDamage_ += 200.0f;
 		return 10.0f;
+	case EBloodSpells::SUMMONSKELETON:	
+		bSpellIsASummon = true;
+		return 10.0f;
+		break;
 	default:
 		return 0.0f;
 	}

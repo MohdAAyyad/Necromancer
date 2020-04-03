@@ -16,14 +16,9 @@ SpellsInventory::SpellsInventory()
 	maxBloodSpellsCount = 4;
 	currentInnateSpell = EInnateSpells::INNATENONE;
 
-	UnlockAimSpell(EAimSpells::BLOODSHOT);
-	UnlockAimSpell(EAimSpells::BLOODROCKET);
-	UnlockAimSpell(EAimSpells::BLOODTIMEBOMB);
-
-	UnlockBloodSpell(EBloodSpells::BLOODMIASMA);
+	UnlockBloodSpell(EBloodSpells::SUMMONSKELETON);
 	UnlockBloodSpell(EBloodSpells::SERVEINDEATH);
-	UnlockBloodSpell(EBloodSpells::BLOODTORNADO);
-	UnlockBloodSpell(EBloodSpells::BLOODEXPLOSION);
+	UnlockAimSpell(EAimSpells::BLOODROCKET);
 }
 
 SpellsInventory::~SpellsInventory()
@@ -102,7 +97,8 @@ EAimSpells SpellsInventory::GetEquippedAimSpellForTexture(int index_)
 
 void SpellsInventory::UnlockAimSpell(EAimSpells spell_)
 {
-	unlockedAimSpells.Add(spell_);
+	if(!unlockedAimSpells.Contains(spell_))
+		unlockedAimSpells.Add(spell_);
 }
 #pragma endregion
 
@@ -179,7 +175,8 @@ EBloodSpells SpellsInventory::GetEquippedBloodSpellForTexture(int index_)
 
 void SpellsInventory::UnlockBloodSpell(EBloodSpells spell_)
 {
-	unlockedBloodSpells.Add(spell_);
+	if (!unlockedBloodSpells.Contains(spell_))
+		unlockedBloodSpells.Add(spell_);
 }
 #pragma endregion
 
@@ -220,7 +217,118 @@ EInnateSpells SpellsInventory::GetEquippedInnateSpellForTexture()
 
 void SpellsInventory::UnlockInnateSpell(EInnateSpells spell_)
 {
-	unlockedInnateSpells.Add(spell_);
+	if(!unlockedInnateSpells.Contains(spell_))
+		unlockedInnateSpells.Add(spell_);
 }
 
 #pragma endregion
+
+#pragma region Names And Descriptions
+
+FString SpellsInventory::GetAimSpellName(EAimSpells spell_)
+{
+	switch (spell_)
+	{
+	case EAimSpells::BLOODSHOT:
+		return "Blood Shot";
+	case EAimSpells::BLOODROCKET:
+		return "Blood Rocket";
+	case EAimSpells::BLOODTIMEBOMB:
+		return "Blood Time Bomb";
+	default:
+		return "";		
+	}
+	return "";
+}
+FString SpellsInventory::GetAimSpellDescription(EAimSpells spell_)
+{
+	switch (spell_)
+	{
+	case EAimSpells::BLOODSHOT:
+		return "Fires a short range blood splash that deals a lot of damage.";
+	case EAimSpells::BLOODROCKET:
+		return "Shoots a rocket of blood that explodes on impact.";
+	case EAimSpells::BLOODTIMEBOMB:
+		return "Shoots a bomb that sticks to its target and explodes after a few a seconds.";
+	default:
+		return "";
+	}
+	return "";
+}
+
+FString SpellsInventory::GetBloodSpellName(EBloodSpells spell_)
+{
+	switch (spell_)
+	{
+	case EBloodSpells::BLOODMIASMA:
+		return "Blood Miasma";
+	case EBloodSpells::BLOODTORNADO:
+		return "Blood Tornado";
+	case EBloodSpells::SERVEINDEATH:
+		return "Serve In Death";
+	case EBloodSpells::BLOODEXPLOSION:
+		return "Blood Explosion";
+	case EBloodSpells::SUMMONSKELETON:
+		return "Summon Skeleton";
+	default:
+		return "";
+	}
+	return "";
+}
+FString SpellsInventory::GetBloodSpellDescription(EBloodSpells spell_)
+{
+	switch (spell_)
+	{
+	case EBloodSpells::BLOODMIASMA:
+		return "Creates a cloud of miasma that poisons enemies who pass through it.";
+	case EBloodSpells::BLOODTORNADO:
+		return "Creates a tornado of blood wrecking havoc in its path.";
+	case EBloodSpells::SERVEINDEATH:
+		return "Turns a dead enemy into an undead attacking enemies close to it.";
+	case EBloodSpells::BLOODEXPLOSION:
+		return "Causes an enemy corpse or an undead ally to explode. \n Can be used to create a chain explosion when targeting undead allies.";
+	case EBloodSpells::SUMMONSKELETON:
+		return "Summon a skeleton to aid you in the fight.";
+	default:
+		return "";
+	}
+	return "";
+}
+
+FString SpellsInventory::GetInnateSpellName(EInnateSpells spell_)
+{
+	switch (spell_)
+	{
+	case EInnateSpells::FLESHISASERVANT:
+		return "Flesh Is A Servant";
+	default:
+		return "";
+	}
+	return "";
+}
+FString SpellsInventory::GetInnateSpellDescription(EInnateSpells spell_)
+{
+	switch (spell_)
+	{
+	case EInnateSpells::FLESHISASERVANT:
+		return "Flesh Is A Servant";
+	default:
+		return "Consumes 20% HP and restores 20% BPs";
+	}
+	return "";
+}
+#pragma endregion
+
+
+bool SpellsInventory::IsAimSpellUnlocked(EAimSpells spell_)
+{
+	return unlockedAimSpells.Contains(spell_);
+}
+bool SpellsInventory::IsBloodSpellUnlocked(EBloodSpells spell_)
+{
+	return unlockedBloodSpells.Contains(spell_);
+}
+bool SpellsInventory::IsInnateSpellUnlocked(EInnateSpells spell_)
+{
+	return unlockedInnateSpells.Contains(spell_);
+}

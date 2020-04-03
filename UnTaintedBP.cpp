@@ -8,24 +8,11 @@ AUnTaintedBP::AUnTaintedBP() : ABloodPool()
 	bloodPoints = healthPoints = 20.0f;
 }
 
-void AUnTaintedBP::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (particles)
-		particles->DeactivateSystem();
-}
-
-void AUnTaintedBP::Tick(float deltaTime_)
-{
-	Super::Tick(deltaTime_);
-}
-
 void AUnTaintedBP::Interact(float& value_, bool bp_)
 {
 	if (!bAbsorbed)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Interacted with untainted BP"));
+		//UE_LOG(LogTemp, Warning, TEXT("Interacted with untainted BP"));
 		if (particles)
 		{			
 			particles->ActivateSystem(true);

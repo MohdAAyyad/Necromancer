@@ -32,6 +32,8 @@ public:
 
 	//Custom
 
+	void SetDamage(float amount_);
+
 protected:
 
 	UPROPERTY(EditAnywhere, Category = Sphere)

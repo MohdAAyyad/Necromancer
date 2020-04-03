@@ -29,7 +29,7 @@ public:
 	void Interact() override {} ; //Interact with the object
 	void Interact(float& value_, bool bp_) override {} ;
 	bool React() override { return true; } ; //React for the crosshair
-	void WallAction() override; //Bloodpools spawn walls, walls destroy themselves
+	void WallAction(FRotator rotater_) override; //Bloodpools spawn walls, walls destroy themselves
 
 
 

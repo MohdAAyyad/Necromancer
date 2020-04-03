@@ -38,9 +38,9 @@ public:
 	EArcheressState currentState;
 	AArcheress();
 	int castChance;
-	void SpawnBloodPool() override;
 	void OnSeePlayer(APawn* pawn_) override;
 	void TakeRegularDamage(float damage_) override;
+	void TakeSpellDamage(float damage_) override;
 	void TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_) override;
 	void SpawnRegularArrow();
 	void DeactivateCastParticles();
@@ -69,7 +69,8 @@ protected:
 	void Death() override;
 	void Zombify() override;
 	void EndZombify() override;
-	void WhoToLookFor(APawn* pawn_) override;
+
+	void Attack();
 
 public:
 	void ActivateZombie() override;

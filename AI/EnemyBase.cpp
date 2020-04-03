@@ -3,6 +3,7 @@
 
 #include "EnemyBase.h"
 #include "Spells/Blood/BloodExplosion.h"
+#include "NecromancerCharacter.h"
 
 // Sets default values
 AEnemyBase::AEnemyBase()
@@ -22,8 +23,10 @@ AEnemyBase::AEnemyBase()
 	statusEffectDuration = 0.0f;
 	enemyForZombie = nullptr;
 	zombifyDuration = 30.0f;
+	patrolRadius = 200.0f;
 	player = nullptr;
 	enemyForZombie = nullptr;
+	permenantTarget = nullptr;
 
 }
 
@@ -56,7 +59,33 @@ void AEnemyBase::OnSeePlayer(APawn* pawn_)
 
 void AEnemyBase::SpawnBloodPool()
 {
-	//Override in children
+	if (!bZombie)
+	{
+		if (!bTypeOfBPToSpawn) //Untainted false, tainted true
+		{
+			if (bloodPools[0])
+			{
+				//Summon blood pool starting at the torso
+				//Code should run after death animation is run
+				GetWorld()->SpawnActor<ABloodPool>(bloodPools[0], GetMesh()->GetBoneLocation("Hips", EBoneSpaces::WorldSpace), GetActorRotation());
+			}
+		}
+		else
+		{
+			if (bloodPools[1])
+			{
+				//Summon blood pool starting at the torso
+				//Code should run after death animation is run
+				GetWorld()->SpawnActor<ABloodPool>(bloodPools[1], GetMesh()->GetBoneLocation("Hips", EBoneSpaces::WorldSpace), GetActorRotation());
+			}
+		}
+	}
+	else
+	{
+		//When the zombie dies, destroy the body
+		bZombie = false;
+		Destroy();
+	}
 }
 
 float AEnemyBase::GetDistanceToPlayer()
@@ -106,4 +135,68 @@ void AEnemyBase::Explode()
 void AEnemyBase::DelayedExplosion()
 {
 	GetWorld()->GetTimerManager().SetTimer(statusEffectTimerHandle, this, &AEnemyBase::Explode, 0.3f, false);
+}
+
+void AEnemyBase::AddEXP()
+{
+	EXPManager::GetInstance()->UpdateCurrentEXP(exp);
+	hasAddedEXP = true;
+}
+
+void AEnemyBase::WhoToLookFor(APawn* pawn_)
+{
+	if (!player && !bZombie) //If we have yet to see the player, and we're not a zombie, make sure you look for the player
+	{
+		//This is to prevent the enemy from going after other enemies when it's not a zombie
+		player = Cast<ANecromancerCharacter>(pawn_);
+		if (player)
+		{
+			AEnemyBase::OnSeePlayer(player);
+		}
+	}
+	else if (bZombie) //Otherwise look for other enemies
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("Zombie seen this %s"), *pawn_->GetName());
+		if (pawn_ != player)
+		{
+			enemyForZombie = Cast<AEnemyBase>(pawn_);
+			if (enemyForZombie)
+			{
+				//UE_LOG(LogTemp,Warning,TEXT("Zombie has seen enemy"))
+				if (!enemyForZombie->bZombie && !enemyForZombie->IsDead()) //Make sure you don't fight a fellow zombie
+				{
+					//UE_LOG(LogTemp, Warning, TEXT("Enemy is not zombie"))
+					AEnemyBase::OnSeePlayer(pawn_);
+					permenantTarget = pawn_;
+				}
+			}
+		}
+	}
+	else if (player)
+	{
+		AEnemyBase::OnSeePlayer(player);
+	}
+}
+
+void AEnemyBase::Patrol()
+{
+	//Assumption: Enemy has not seen player yet. Enemy moves within a certain radius until player is seen
+	if (!hasPickedApatrolDestination)
+	{
+		moveLoc.X = GetActorLocation().X + FMath::RandRange(-patrolRadius, patrolRadius);
+		moveLoc.Y = GetActorLocation().Y + FMath::RandRange(-patrolRadius, patrolRadius);
+		moveLoc.Z = GetActorLocation().Z;
+		if (aiController)
+			aiController->SetNewLocation(moveLoc);
+
+		hasPickedApatrolDestination = true;
+	}
+	else
+	{
+		if ((moveLoc - GetActorLocation()).Size() <= 1.0f) //Are you at the patrol destination yet?
+		{
+			hasPickedApatrolDestination = false;
+			//A delay is added at the behavior tree level
+		}
+	}
 }

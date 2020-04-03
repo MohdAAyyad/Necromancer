@@ -28,7 +28,8 @@ enum class EBloodSpells : uint8
 	BLOODMIASMA = 1, // Summons a misama cloud above a blood pool or a corpse
 	BLOODTORNADO = 2, //Summon tornado
 	SERVEINDEATH = 3, //Turns a dead body into a zombie that attacks the enemy closest to it and lasts for a short amount of time.
-	BLOODEXPLOSION = 4 //Makes a corpse or a zombie or a zombie explode
+	BLOODEXPLOSION = 4, //Makes a corpse or a zombie or a zombie explode
+	SUMMONSKELETON = 5 //Summon a skeleton from a blood pool
 
 };
 

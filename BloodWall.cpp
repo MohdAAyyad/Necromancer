@@ -45,12 +45,12 @@ void ABloodWall::TakeDamage(float damage_)
 		UE_LOG(LogTemp, Warning, TEXT("hp is: %f"), hp);
 		if (hp <= 0.5f)
 		{
-			WallAction();
+			WallAction(FRotator::ZeroRotator);
 		}
 	}
 }
 
-void ABloodWall::WallAction() //Called when the player aims at a wall and presses wallaction. Destroys wall
+void ABloodWall::WallAction(FRotator rotater_) //Called when the player aims at a wall and presses wallaction. Destroys wall
 {
 	mesh->ApplyDamage(2.0f, GetActorLocation(), FVector::ZeroVector, 1.0f);
 	box->SetCollisionEnabled(ECollisionEnabled::NoCollision);

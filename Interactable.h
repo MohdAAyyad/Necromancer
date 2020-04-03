@@ -25,5 +25,5 @@ public:
 	virtual void Interact() = 0; //Interact with the object
 	virtual void Interact(float& value_, bool bp_) = 0;
 	virtual bool React() = 0; //React for the crosshair
-	virtual void WallAction() = 0; //Bloodpools spawn walls, walls destroy themselves
+	virtual void WallAction(FRotator rotater_) = 0; //Bloodpools spawn walls, walls destroy themselves
 };

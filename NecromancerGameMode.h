@@ -11,8 +11,16 @@ class ANecromancerGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
+private:
+	static FVector currentCheckpoint;
+	UPROPERTY(EditAnywhere)
+	FName currentLevelName;
 public:
 	ANecromancerGameMode();
+	void SetNewCheckpoint(FVector checkpointLoc_);
+	void RespawnPlayer();
+	void SetLevelName(FName level_);
+	FVector GetStartingPosition();
 };
 
 

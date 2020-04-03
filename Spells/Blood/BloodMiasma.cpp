@@ -28,7 +28,7 @@ void ABloodMiasma::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 
 		if (enemy)
 		{
-			if (enemy->GetCurrentStatusEffect() == EStatusEffects::NONE && !enemy->IsDead()) //An enemy can be affected with only one status effect at a time
+			if (enemy->GetCurrentStatusEffect() == EStatusEffects::NONE && !enemy->IsDead() && !enemy->bZombie) //An enemy can be affected with only one status effect at a time
 			{
 				enemy->TakeSpellDamage(damage, EStatusEffects::POISONED, durationInSeconds);
 			}

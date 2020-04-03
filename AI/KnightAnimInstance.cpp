@@ -8,6 +8,7 @@
 UKnightAnimInstance::UKnightAnimInstance()
 {
 	owner = nullptr;
+	knight = nullptr;
 	forwardSpeed = 0.0f;
 	 bAttack0 = false;
 	 bCast0 = false;

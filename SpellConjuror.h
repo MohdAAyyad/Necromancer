@@ -7,6 +7,7 @@
 #include "Spells.h"
 #include "StatusEffects.h"
 #include "AimProjectile.h"
+#include "Spells/Blood/SummonBase.h"
 #include "SpellConjuror.generated.h"
 
 
@@ -27,10 +28,13 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditDefaultsOnly, Category = Spells)
-	TArray<TSubclassOf<class AAimProjectile>> aimSpellProjectiles;
+		TArray<TSubclassOf<class AAimProjectile>> aimSpellProjectiles;
 
 	UPROPERTY(EditDefaultsOnly, Category = Spells)
-	TArray<TSubclassOf<class AAimProjectile>>  bloodSpellProjectiles;
+		TArray<TSubclassOf<class AAimProjectile>>  bloodSpellProjectiles;
+
+	UPROPERTY(EditDefaultsOnly, Category = Spells)
+		TArray<TSubclassOf<class ASummonBase>> summons;
 
 public:	
 	// Called every frame

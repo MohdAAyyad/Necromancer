@@ -33,64 +33,38 @@ public:
 		DEATH,
 	};
 
-	void TakeRegularDamage(float damage_) override;
-	void TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_) override;
+	virtual void TakeRegularDamage(float damage_) override;
+	virtual void TakeSpellDamage(float damage_) override;
+	virtual void TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_) override;
 
 protected:
 
-	void BeginPlay() override;
-	class UKnightAnimInstance* animInstance;
+	virtual void BeginPlay() override;
+
 	UPROPERTY(EditAnywhere)
-	USceneComponent* castSpellLocation;
-
-
+		USceneComponent* castSpellLocation;
 
 public:
 	AKnight();
 	EKnightState currentState;
-	void SpawnBloodPool() override;
-	void OnSeePlayer(APawn* pawn_) override;
-	void Tick(float DeltaTime) override;
-
-protected:
+	virtual void OnSeePlayer(APawn* pawn_) override;
+	virtual void Tick(float DeltaTime) override;
+	void EndSpecial();
 
 
-	//Strafe
-	FVector moveLoc;
-	float acceptableStrafeDistance; //If the player is close to you, do not strafe, just continue attacking
-	void Strafe();
-
-	//Patrol
-	float patrolRadius;
-	bool hasPickedApatrolDestination;
-	void Patrol();
-
-	//Cast
-	float acceptableCastDistance; //More than this, calculate cast chance
-	float acceptableMeleeDistance;//Less than this, do melee attack
-	bool hasUsedCastFireBall; //If used, don't spam, go for melee
+private :
 
 	//Special
 	bool hasCastSpecial;
 	float specialModifier; //Knight's special increases the damage base modifier
+	bool hasUsedCastFireBall; //If used, don't spam, go for melee
 
-	UPROPERTY(EditAnywhere, Category = Stats)
-	float acceptableAttackDistance; //The distance after which the state switches to attacking
-	void ToPlayer();
-
-	float reloadTime;
-	FTimerHandle attackTimerHandle;
-
-	UPROPERTY(EditAnywhere, Category = "AttackHitBox")
-	UBoxComponent* attackHitBox;
-	float timeToDisableAttackHitBox;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Casting")
-		TSubclassOf<AEnemyProjectile> castProjectile;
+	float acceptableMeleeDistance;//Less than this, do melee attack
 
 	UPROPERTY(EditAnywhere, Category = "Special")
 		UParticleSystemComponent* specialParticles;
-	
+
+
 	UFUNCTION()
 		void AttackOverlap
 		(UPrimitiveComponent* OverlappedComponent,
@@ -100,27 +74,50 @@ protected:
 			bool bFromSweep,
 			const FHitResult &SweepResult);
 
+	UPROPERTY(EditAnywhere, Category = "AttackHitBox")
+		UBoxComponent* attackHitBox;
+	float timeToDisableAttackHitBox;
 
-	void Death() override;
-	void Zombify() override;
-	void EndZombify() override;
-	void WhoToLookFor(APawn* pawn_) override;
+	class UKnightAnimInstance* animInstance;
 
 	void CheckForSpecial();
+	UPROPERTY(EditDefaultsOnly, Category = "Casting")
+		TSubclassOf<AEnemyProjectile> castProjectile;
 
+protected:
+
+	//Strafe
+	float acceptableStrafeDistance; //If the player is close to you, do not strafe, just continue attacking
+	virtual void Strafe();
+	
+
+	UPROPERTY(EditAnywhere, Category = Stats)
+	float acceptableAttackDistance; //The distance after which the state switches to attacking
+	virtual void ToPlayer();
+
+	float reloadTime;
+	FTimerHandle attackTimerHandle;
+
+
+	//Cast
+	float acceptableCastDistance; //More than this, calculate cast chance
+
+
+	virtual void Death() override;
+	virtual void Zombify() override;
+	virtual void EndZombify() override;
 
 public:
-	void Reload();
-	void EndReload();
+	virtual void Reload();
+	virtual void EndReload();
 
-	void EnableHitBox();
+	virtual void EnableHitBox();
 
-	void SpawnCastProjectile();
+	virtual void SpawnCastProjectile();
 
-	void EndHit();
-	void EndSpecial();
+	virtual void EndHit();
 
-	void ActivateZombie() override;
+	virtual void ActivateZombie() override;
 
 
 	

@@ -15,11 +15,10 @@ class NECROMANCER_API AEnemyAIController : public AAIController
 	GENERATED_BODY()
 
 protected:
+	AEnemyAIController();
 	class UBehaviorTreeComponent* behaviorTreeComponent;
 	class UBlackboardComponent* blackboardComponent;
 
-public:
-	AEnemyAIController();
 	UPROPERTY(VisibleAnywhere, Category = Blackboard)
 		FName playerKey; //Player
 	UPROPERTY(VisibleAnywhere, Category = Blackboard)
@@ -40,7 +39,12 @@ public:
 		FName specialKey; //Move to this location
 	UPROPERTY(VisibleAnywhere, Category = Blackboard)
 		FName attackKey; //Move to this location
+	UPROPERTY(VisibleAnywhere, Category = Blackboard)
+		FName sittingKey; //Move to this location
+	UPROPERTY(VisibleAnywhere, Category = Blackboard)
+		FName evadingKey; //Move to this location
 
+public:
 	virtual void OnPossess(APawn* pawn_) override;
 	virtual void SetSeenTarget(APawn* pawn_);
 	virtual void SetDead();
@@ -53,6 +57,8 @@ public:
 	virtual void SetHit(bool value_);
 	virtual void SetSpecial(bool value_);
 	virtual void SetAttack(bool value_);
+	virtual void SetSitting(bool value_);
+	virtual void SetEvading(bool value_);
 	virtual FVector GetPlayerLocation();
 	virtual UObject* GetPlayer();
 };

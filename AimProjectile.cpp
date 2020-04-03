@@ -3,6 +3,7 @@
 
 #include "AimProjectile.h"
 #include "AI/EnemyBase.h"
+#include "AI/EnemyProjectile.h"
 
 // Sets default values
 AAimProjectile::AAimProjectile()
@@ -70,6 +71,9 @@ void AAimProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 	{
 		//UGameplayStatics::SpawnDecalAttached(decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetRootComponent(),NAME_None,sweepResult_.ImpactPoint,sweepResult_.Normal.Rotation());
 
+		if (impact)
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f));
+
 		UGameplayStatics::SpawnDecalAtLocation(GetWorld(), decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetActorLocation(),sweepResult_.Normal.Rotation());
 		//UE_LOG(LogTemp, Warning, TEXT("Impact point %f %f %f"), sweepResult_.ImpactPoint.X, sweepResult_.ImpactPoint.Y, sweepResult_.ImpactPoint.Z);
 
@@ -85,11 +89,18 @@ void AAimProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 		}
 		else
 		{
+
 			ADestructibleProp* prop = Cast<ADestructibleProp>(otherActor_);
 			if (prop)
 			{
 				prop->TakeDamage(damage);
 				Destroy();
+			}
+			else //Yes the player can shoot the enemy's projectiles
+			{
+				AEnemyProjectile* proj = Cast<AEnemyProjectile>(otherActor_);
+				if (proj)
+					Destroy();
 			}
 		}
 	}
@@ -120,5 +131,10 @@ void AAimProjectile::SetEffectAndDuration(EStatusEffects effect_, EStatusDuratio
 	default:
 		break;
 	}
+}
+
+void AAimProjectile::SetDamage(float amount_)
+{
+	damage = amount_;
 }
 

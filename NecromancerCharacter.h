@@ -18,6 +18,7 @@
 #include "StatusEffects.h"
 #include "SpellConjuror.h"
 #include "HUD/PlayerUIController.h"
+#include "PlayerStats.h"
 #include "NecromancerCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -129,10 +130,8 @@ protected:
 	ULeahAnimInstance* animInstance;
 
 	//Stats
-	float maxHP;
-	float hp;
-	float maxBP;
-	float bp;
+	UPROPERTY(EditAnywhere)
+	UPlayerStats* stats;
 
 	EAimSpells currentAimSpell; //Updated from spells inventory with the player's input --> Player presses 1 for example --> call use spell and populate the variable --> play animation --> pass in the variables to the conjuror
 	EBloodSpells currentBloodSpell;//Updated from spells inventory with the player's input
@@ -165,6 +164,7 @@ protected:
 
 	//Spells
 	bool increaseHP;
+	bool usingASpellSummon;
 	float spellBaseDamage;
 	EStatusEffects effect;
 	//Spell functions

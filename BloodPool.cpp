@@ -19,9 +19,17 @@ ABloodPool::ABloodPool()
 	bpMaster = nullptr;
 }
 
+void ABloodPool::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (particles)
+		particles->DeactivateSystem();
+}
+
 void ABloodPool::Absorbed()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Absorbing BP"));
+	//UE_LOG(LogTemp, Warning, TEXT("Absorbing BP"));
 	FTimerHandle handle;
 	bAbsorbed = true;
 	//UE_LOG(LogTemp, Warning, TEXT("%f"), GetActorScale3D().Size());
@@ -53,13 +61,13 @@ void ABloodPool::Interact()
 	}
 }
 
-void ABloodPool::WallAction()
+void ABloodPool::WallAction(FRotator rotater_)
 {
 	if (wall)
 	{
 		FVector vec = GetActorLocation();
 		vec.Z -= 120.0f;
-		GetWorld()->SpawnActor<ABloodWall>(wall, vec, FRotator::ZeroRotator);
+		GetWorld()->SpawnActor<ABloodWall>(wall, vec, rotater_);
 		Absorbed();
 	}
 }

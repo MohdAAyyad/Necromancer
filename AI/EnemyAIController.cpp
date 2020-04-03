@@ -4,6 +4,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
+#include "./Spells/Blood/SummonBase.h"
 #include "EnemyBase.h"
 
 AEnemyAIController::AEnemyAIController()
@@ -18,6 +19,8 @@ AEnemyAIController::AEnemyAIController()
 	hitKey = "Hit";
 	specialKey = "Special";
 	attackKey = "Attack";
+	sittingKey = "Sitting";
+	evadingKey = "Evading";
 	blackboardComponent = CreateDefaultSubobject<UBlackboardComponent>(TEXT("Blackboard"));
 	behaviorTreeComponent = CreateDefaultSubobject<UBehaviorTreeComponent>(TEXT("EnemyBaseBehaviorTree"));
 }
@@ -39,6 +42,22 @@ void AEnemyAIController::OnPossess(APawn* pawn_)
 			}
 		}
 	}
+	else
+	{
+		ASummonBase* summon = Cast<ASummonBase>(pawn_);
+
+		if (summon)
+		{
+			if (summon->summonBT)
+			{
+				if (summon->summonBT->BlackboardAsset)
+				{
+					blackboardComponent->InitializeBlackboard(*(summon->summonBT->BlackboardAsset));
+					behaviorTreeComponent->StartTree(*(summon->summonBT));
+				}
+			}
+		}
+	}
 }
 
 void AEnemyAIController::SetSeenTarget(APawn* pawn_)
@@ -48,7 +67,10 @@ void AEnemyAIController::SetSeenTarget(APawn* pawn_)
 		blackboardComponent->SetValueAsObject(playerKey, pawn_);
 	}
 
-	SetFocus(pawn_);
+	if (pawn_)
+		SetFocus(pawn_);
+	else
+		ClearFocus(EAIFocusPriority::Gameplay);
 }
 
 void AEnemyAIController::SetDead()
@@ -155,10 +177,26 @@ void AEnemyAIController::SetStrafe(bool value_)
 	 }
  }
 
- void AEnemyAIController::SetAttack(bool value_)
- {
+void AEnemyAIController::SetAttack(bool value_)
+{
 	 if (blackboardComponent)
 	 {
 		 blackboardComponent->SetValueAsBool(attackKey, value_);
 	 }
+}
+
+void AEnemyAIController::SetSitting(bool value_)
+{
+	if (blackboardComponent)
+	{
+		blackboardComponent->SetValueAsBool(sittingKey, value_);
+	}
+}
+
+void AEnemyAIController::SetEvading(bool value_)
+{
+	if (blackboardComponent)
+	{
+		blackboardComponent->SetValueAsBool(evadingKey, value_);
+	}
 }

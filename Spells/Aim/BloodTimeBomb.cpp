@@ -25,7 +25,7 @@ void ABloodTimeBomb::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 
 		if (enemy)
 		{
-			if (!enemy->IsDead())
+			if (!enemy->IsDead() && !enemy->bZombie)
 			{
 				if (!hasBeenAttached)
 				{

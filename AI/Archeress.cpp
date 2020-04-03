@@ -44,6 +44,11 @@ void AArcheress::BeginPlay()
 void AArcheress::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (permenantTarget)//Archers don't move. When they see the player, they'll measure the distance and attack if the player is close enough
+	{
+		Attack();
+	}
 }
 
 #pragma region See Player
@@ -54,98 +59,40 @@ void AArcheress::OnSeePlayer(APawn* pawn_)
 	{
 		WhoToLookFor(pawn_);
 
-		if (aiController->GetPlayer()) //Only work when you actually see a target
-		{
-			if (GetDistanceToPlayer() <= attackAcceptableDistance && currentState == EArcheressState::IDLE) //If the player is close enough, aim
-			{
-				if (animInstance)
-				{
-					if (!animInstance->IsMontagePlaying())
-					{
-						castChance = FMath::RandRange(0, 40);
-					}
-					if (castChance >= 0 && castChance <= 10)
-					{
-						animInstance->NextCast();
-						if (castParticles)
-							castParticles->ActivateSystem(true);
-					}
-					else
-					{
-						animInstance->NextAttack();
-					}
-					currentState = EArcheressState::AIM;
-				}
-			}
-		}
-	}
-}
-
-
-void AArcheress::WhoToLookFor(APawn* pawn_)
-{
-	if (!player && !bZombie) //If we have yet to see the player, and we're not a zombie, make sure you look for the player
-	{
-		//This is to prevent the enemy from going after other enemies when it's not a zombie
-		player = Cast<ANecromancerCharacter>(pawn_);
-		if (player)
-			Super::OnSeePlayer(player);
-	}
-	else if (bZombie) //Otherwise look for other enemies
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("Zombie seen this %s"), *pawn_->GetName());
-		if (pawn_ != player)
-		{
-			enemyForZombie = Cast<AEnemyBase>(pawn_);
-			if (enemyForZombie)
-			{
-				//UE_LOG(LogTemp,Warning,TEXT("Zombie has seen enemy"))
-					if (!enemyForZombie->bZombie && !enemyForZombie->IsDead()) //Make sure you don't fight a fellow zombie
-					{
-						//UE_LOG(LogTemp, Warning, TEXT("Enemy is not zombie"))
-						Super::OnSeePlayer(pawn_);
-					}
-			}
-		}
-	}
-	else if (player)
-	{
-		Super::OnSeePlayer(player);
+		if (!permenantTarget && !bZombie) //If we're a zombie, permenant target will be filled from inside who to look for
+			permenantTarget = pawn_;
+		else if (!permenantTarget && bZombie)
+			permenantTarget = enemyForZombie;
 	}
 }
 
 #pragma endregion
 
-void AArcheress::SpawnBloodPool()
+
+void AArcheress::Attack()
 {
-	if (!bZombie)
+	if (GetDistanceToPlayer() <= attackAcceptableDistance && currentState == EArcheressState::IDLE) //If the player is close enough, aim
 	{
-		if (!bTypeOfBPToSpawn) //Untainted false, tainted true
+		if (animInstance)
 		{
-			if (bloodPools[0])
+			if (!animInstance->IsMontagePlaying())
 			{
-				//Summon blood pool starting at the torso
-				//Code should run after death animation is run
-				GetWorld()->SpawnActor<ABloodPool>(bloodPools[0], GetMesh()->GetBoneLocation("Hips", EBoneSpaces::WorldSpace), GetActorRotation());
+				castChance = FMath::RandRange(0, 40);
 			}
-		}
-		else
-		{
-			if (bloodPools[1])
+			if (castChance >= 0 && castChance <= 10)
 			{
-				//Summon blood pool starting at the torso
-				//Code should run after death animation is run
-				GetWorld()->SpawnActor<ABloodPool>(bloodPools[1], GetMesh()->GetBoneLocation("Hips", EBoneSpaces::WorldSpace), GetActorRotation());
+				animInstance->NextCast();
+				if (castParticles)
+					castParticles->ActivateSystem(true);
 			}
+			else
+			{
+				animInstance->NextAttack();
+			}
+			currentState = EArcheressState::AIM;
 		}
 	}
-	else
-	{
-		Destroy();
-	}
-
 }
-
 void AArcheress::TakeRegularDamage(float damage_)
 {
 	if (!bDead)
@@ -163,6 +110,11 @@ void AArcheress::TakeRegularDamage(float damage_)
 			if (animInstance)
 				animInstance->SetHit();
 		}
+	}
+
+	if (!aiController->GetPlayer() && !bZombie)
+	{
+		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
 	}
 }
 void AArcheress::TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_)
@@ -191,16 +143,44 @@ void AArcheress::TakeSpellDamage(float damage_, EStatusEffects effect_, float du
 				animInstance->SetHit();
 		}
 	}
+
+	if (!aiController->GetPlayer() && !bZombie)
+	{
+		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+	}
 }
+
+void AArcheress::TakeSpellDamage(float damage_)
+{
+	if (!bDead)
+	{
+		hp -= damage_;
+		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
+
+		if (hp <= 0.5f)
+		{
+			bTypeOfBPToSpawn = true;
+			Death();
+		}
+		else
+		{
+			if (animInstance)
+				animInstance->SetHit();
+		}
+	}
+
+	if (!aiController->GetPlayer() && !bZombie)
+	{
+		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+	}
+}
+
 
 void AArcheress::Death()
 {
 	//Enemy die animation
 	if (animInstance)
 		animInstance->Death();
-
-	//TODO
-	//Enable enemy to be targeted for "Serve in Death" spell
 
 	bDead = true;
 	aiController->SetSeenTarget(nullptr);
@@ -209,6 +189,11 @@ void AArcheress::Death()
 		castParticles->DeactivateSystem();
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	if (!hasAddedEXP)
+		AddEXP();
+
+	permenantTarget = nullptr;
 }
 #pragma region Zombification
 

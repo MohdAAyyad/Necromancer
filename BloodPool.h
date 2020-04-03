@@ -21,7 +21,7 @@ public:
 
 protected:
 	// Called when the game starts or when spawned
-	virtual void BeginPlay() { Super::BeginPlay(); }
+	virtual void BeginPlay() override;
 	UPROPERTY(EditAnywhere)
 	USceneComponent* root;
 	UPROPERTY(EditAnywhere, Category = BoxCollision)
@@ -44,7 +44,7 @@ public:
 	virtual void Interact() override;
 	virtual void Interact(float& value_, bool bp_) override {};
 	virtual void Absorbed();//Called when a BP is absorbed or used
-	virtual void WallAction() override;
+	virtual void WallAction(FRotator rotater_) override;
 
 	void DestroyBP();
 

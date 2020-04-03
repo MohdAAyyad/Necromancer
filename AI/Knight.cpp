@@ -7,6 +7,10 @@
 #include "Components/CapsuleComponent.h"
 #include "KnightAnimInstance.h"
 
+//TODO
+
+// Solve the bug where if you hit the knight when it still doesn't see you, it breaks
+
 
 AKnight::AKnight():AEnemyBase()
 {
@@ -17,7 +21,6 @@ AKnight::AKnight():AEnemyBase()
 	 bDead = false;
 	 animInstance = nullptr;
 	 currentState = EKnightState::PATROLLING;
-	 patrolRadius = 200.0f;
 	 hasPickedApatrolDestination = false;
 	 moveLoc = FVector::ZeroVector;
 	 acceptableStrafeDistance = 50.0f;
@@ -97,7 +100,7 @@ void AKnight::TakeRegularDamage(float damage_)
 	if (!bDead)
 	{
 		hp -= damage_;
-		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
+		UE_LOG(LogTemp, Warning, TEXT("damage is %f"), damage_);
 
 		if (hp <= 0.5f)
 		{
@@ -126,6 +129,7 @@ void AKnight::TakeRegularDamage(float damage_)
 	{
 		moveLoc = GetActorLocation() - 75.0f*GetActorRightVector();
 		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		currentState = EKnightState::PATROLLING;
 	}
 }
 
@@ -134,7 +138,7 @@ void AKnight::TakeSpellDamage(float damage_, EStatusEffects effect_, float durat
 	if (!bDead)
 	{
 		hp -= damage_;
-		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
+		UE_LOG(LogTemp, Warning, TEXT("damage is %f"), damage_);
 
 		if (hp <= 0.5f)
 		{
@@ -144,6 +148,7 @@ void AKnight::TakeSpellDamage(float damage_, EStatusEffects effect_, float durat
 		}
 		else
 		{
+			//Check if the new status effect is applicable
 			if (effect_ != EStatusEffects::NONE && currentStatusEffect == EStatusEffects::NONE)
 			{
 				//UE_LOG(LogTemp, Warning, TEXT("POISONED!"));
@@ -172,6 +177,46 @@ void AKnight::TakeSpellDamage(float damage_, EStatusEffects effect_, float durat
 	{
 		moveLoc = GetActorLocation() - 75.0f*GetActorRightVector();
 		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		currentState = EKnightState::PATROLLING;
+	}
+}
+
+void AKnight::TakeSpellDamage(float damage_)
+{
+	if (!bDead)
+	{
+		hp -= damage_;
+		UE_LOG(LogTemp, Warning, TEXT("damage is %f"), damage_);
+
+		if (hp <= 0.5f)
+		{
+			bTypeOfBPToSpawn = true; //True-->Tainted
+			Death();
+
+		}
+		else
+		{
+			if (hp > 0.4f*maxHP)
+			{
+				if (currentState != EKnightState::CASTING && currentState != EKnightState::ATTACKING && currentState != EKnightState::DEATH)
+					if (animInstance)
+						animInstance->SetHit();
+				if (aiController)
+					aiController->SetHit(true);
+			}
+			else
+			{
+				CheckForSpecial();
+			}
+		}
+
+	}
+
+	if (!aiController->GetPlayer())
+	{
+		moveLoc = GetActorLocation() - 75.0f*GetActorRightVector();
+		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		currentState = EKnightState::PATROLLING;
 	}
 }
 
@@ -186,6 +231,7 @@ void AKnight::CheckForSpecial()
 			animInstance->ResetAttack();
 			animInstance->ResetCast();
 			animInstance->ResetReload();
+			animInstance->ResetHit();
 			animInstance->NextSpecial();
 		}
 
@@ -222,6 +268,9 @@ void AKnight::Death()
 		specialParticles->DeactivateSystem();
 	attackHitBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	if (!hasAddedEXP)
+		AddEXP();
 }
 
 #pragma endregion
@@ -265,36 +314,6 @@ void AKnight::ActivateZombie()
 }
 #pragma endregion
 
-void AKnight::SpawnBloodPool()
-{
-	if (!bZombie)
-	{
-		if (!bTypeOfBPToSpawn) //Untainted false, tainted true
-		{
-			if (bloodPools[0])
-			{
-				//Summon blood pool starting at the torso
-				//Code should run after death animation is run
-				GetWorld()->SpawnActor<ABloodPool>(bloodPools[0], GetMesh()->GetBoneLocation("Hips", EBoneSpaces::WorldSpace), GetActorRotation());
-			}
-		}
-		else
-		{
-			if (bloodPools[1])
-			{
-				//Summon blood pool starting at the torso
-				//Code should run after death animation is run
-				GetWorld()->SpawnActor<ABloodPool>(bloodPools[1], GetMesh()->GetBoneLocation("Hips", EBoneSpaces::WorldSpace), GetActorRotation());
-			}
-		}
-	}
-	else
-	{
-		//When the zombie dies, destroy the body
-		bZombie = false;
-		Destroy();
-	}
-}
 
 #pragma region See Player
 
@@ -354,58 +373,7 @@ void AKnight::OnSeePlayer(APawn* pawn_)
 	}
 }
 
-void AKnight::WhoToLookFor(APawn* pawn_)
-{
-	if (!player && !bZombie) //If we have yet to see the player, and we're not a zombie, make sure you look for the player
-	{
-		//This is to prevent the enemy from going after other enemies when it's not a zombie
-		player = Cast<ANecromancerCharacter>(pawn_);
-		if (player)
-			Super::OnSeePlayer(player);
-	}
-	else if (bZombie) //Otherwise look for other enemies
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("Zombie seen this %s"), *pawn_->GetName());
-		if (pawn_ != player)
-		{
-			enemyForZombie = Cast<AEnemyBase>(pawn_);
-			if (enemyForZombie)
-			{
-				if (!enemyForZombie->bZombie && !enemyForZombie->IsDead()) //Make sure you don't fight a fellow zombie
-					Super::OnSeePlayer(pawn_);
-			}
-		}
-	}
-	else if (player)
-	{
-		Super::OnSeePlayer(player);
-	}
-}
-
 #pragma endregion
-
-void AKnight::Patrol()
-{
-	//Assumption: Enemy has not seen player yet. Enemy moves within a certain radius until player is seen
-	if (!hasPickedApatrolDestination)
-	{
-		moveLoc.X = GetActorLocation().X + FMath::RandRange(-patrolRadius, patrolRadius);
-		moveLoc.Y = GetActorLocation().Y + FMath::RandRange(-patrolRadius, patrolRadius);
-		moveLoc.Z = GetActorLocation().Z;
-		aiController->SetNewLocation(moveLoc);
-		//FRotator rot = moveLoc.Rotation();
-		//rot.Pitch = 0.0f;
-		//SetActorRotation(rot);
-		hasPickedApatrolDestination = true; 
-	}
-	else
-	{
-		if ((moveLoc - GetActorLocation()).Size() <= 1.0f) //Are you at the patrol destination yet?
-		{
-			hasPickedApatrolDestination = false;
-		}
-	}
-}
 
 void AKnight::Strafe()
 {
@@ -472,7 +440,10 @@ void AKnight::Reload()
 	GetWorld()->GetTimerManager().SetTimer(attackTimerHandle, this, &AKnight::EndReload, reloadTime, false);
 
 	if (animInstance)
+	{
 		animInstance->Reload();
+		animInstance->ResetHit();
+	}
 
 	if (aiController)
 	{
@@ -535,10 +506,10 @@ void AKnight::AttackOverlap (UPrimitiveComponent* overlappedComponent_,
 		}
 		else
 		{
-			AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_); //Enemies can damage each other + this is used for zombies
+			AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_); //This is used for zombies
 			if (enemy)
 			{
-				enemy->TakeSpellDamage(baseDamage * damageModifier, EStatusEffects::NONE, 0.0f);
+				enemy->TakeSpellDamage(baseDamage * damageModifier);
 			}
 		}
 	}

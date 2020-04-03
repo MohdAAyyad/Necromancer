@@ -32,12 +32,13 @@ void AEnemyProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 {
 	if (otherActor_ != nullptr && otherComp_ != nullptr && otherActor_ != this)
 	{
+		if (impact)
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(0.2f, 0.2f, 0.2f));
+
 		ANecromancerCharacter* player = Cast<ANecromancerCharacter>(otherActor_);
 		if (player)
 		{
 			player->TakeDamage(damage);
-			if(impact)
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(),FRotator::ZeroRotator, FVector(0.2f, 0.2f, 0.2f));
 			Destroy();
 		}
 		else
@@ -45,20 +46,25 @@ void AEnemyProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_); //This mainly for zombies
 			if (enemy)
 			{
-				enemy->TakeSpellDamage(damage, EStatusEffects::NONE, 0.0f);
-				if (impact)
-					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(0.2f, 0.2f, 0.2f));
-				Destroy();
+				if (!enemy->bZombie && !enemy->IsDead())
+				{
+					enemy->TakeSpellDamage(damage);
+					Destroy();
+				}
 			}
 			else
 			{
 				ABloodWall* wall = Cast<ABloodWall>(otherActor_);
 				if (wall)
 				{
-					if (impact)
-						UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(0.2f, 0.2f, 0.2f));
 					wall->TakeDamage(damage);
 					Destroy();
+				}
+				else
+				{
+					AAimProjectile* proj = Cast<AAimProjectile>(otherActor_);
+					if (proj)
+						Destroy();
 				}
 			}
 		}

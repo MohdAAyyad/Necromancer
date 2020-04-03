@@ -6,6 +6,8 @@
 
 UArcheressAnimInstance::UArcheressAnimInstance()
 {
+	owner = nullptr;
+	archeress = nullptr;
 	bAttack0 = false;
 	bCast0 = false;
 	bDeath = false;

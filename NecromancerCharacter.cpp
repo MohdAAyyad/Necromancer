@@ -10,6 +10,7 @@
 #include "TimerManager.h"
 #include "AI/EnemyBase.h"
 #include "BloodWall.h"
+#include "NecromancerGameMode.h"
 #include "GameFramework/SpringArmComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -67,11 +68,10 @@ ANecromancerCharacter::ANecromancerCharacter()
 
 	uictrl = CreateDefaultSubobject<UPlayerUIController>(TEXT("UI Controller"));
 
+	stats = CreateDefaultSubobject<UPlayerStats>(TEXT("Player Stats"));
+
 	//Stats
-	maxHP = 100.0f;
-	hp = 70.0f;
-	maxBP = 100.0f;
-	bp = 100.0f;
+	spellBaseDamage = 0.0f;
     lineCastLength = 1500.0f;
 	dashDistance = 1000.0f;
 	dashTime = 0.7495f;
@@ -83,7 +83,7 @@ ANecromancerCharacter::ANecromancerCharacter()
 	currentStatusDuration = EStatusDuration::MIN;
 
 	increaseHP = false;
-	spellBaseDamage = 0.0f;
+	usingASpellSummon = false;
 	effect = EStatusEffects::NONE;
 	bCastingSpell = false;
 
@@ -104,9 +104,20 @@ void ANecromancerCharacter::BeginPlay()
 	SpellsInventory::GetInstance(); //Initiate instance
 	SpellCheck::GetInstance();
 
-	uictrl->SetHealthPercentage(hp/maxHP);
-	uictrl->SetBloodPercentage(bp/maxBP);
-	
+	if (uictrl)
+	{
+		if (stats)
+			uictrl->SetPlayerStatsPtr(stats);
+	}
+
+	ANecromancerGameMode* gameMode = Cast<ANecromancerGameMode>(GetWorld()->GetAuthGameMode());
+	if (gameMode)
+	{
+		if (gameMode->GetStartingPosition() != FVector::ZeroVector)
+		{
+			SetActorLocation(gameMode->GetStartingPosition());
+		}
+	}	
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -151,6 +162,7 @@ void ANecromancerCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 
 	//UI
 	PlayerInputComponent->BindAction("Pause", IE_Pressed, uictrl, &UPlayerUIController::PauseGame);
+	PlayerInputComponent->BindAction("SkillTrees", IE_Pressed, uictrl, &UPlayerUIController::SkillTreeMenu);
 	
 	//Dash
 	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &ANecromancerCharacter::Dash);
@@ -334,18 +346,7 @@ void ANecromancerCharacter::AimInteract() //Pressing interact
 	{
 		if (interactable && bAimingAtABloodPool && !bAimingAtEnemy)
 		{
-			interactable->Interact(bp, true); //absorb blood points from the blood pool
-
-			if (bp >= maxBP)
-			{
-				bp = maxBP;
-				uictrl->SetBloodPercentage(1.0f);
-			}
-			else
-			{
-				uictrl->SetBloodPercentage(bp / maxBP);
-			}
-			UE_LOG(LogTemp, Warning, TEXT("New BPs = %f"), bp);
+			interactable->Interact(stats->GetBP(), true); //absorb blood points from the blood pool
 		}
 	}
 }
@@ -357,19 +358,7 @@ void ANecromancerCharacter::AimInteractHeal() //Pressing interact heal
 	{
 		if (interactable && bAimingAtABloodPool && !bAimingAtEnemy)
 		{
-			interactable->Interact(hp, false); //absorb blood points from the blood pool
-
-			if (hp >= maxHP)
-			{
-				hp = maxHP;
-				uictrl->SetHealthPercentage(1.0f);
-			}
-			else
-			{
-				uictrl->SetHealthPercentage(hp / maxHP);
-			}
-			UE_LOG(LogTemp, Warning, TEXT("New HPs = %f"), hp);
-
+			interactable->Interact(stats->GetHP(), false); //absorb health points from the blood pool
 		}
 	}
 }
@@ -393,13 +382,14 @@ void ANecromancerCharacter::ConjurSpell()
 #pragma region CallAndConjurAimSpell
 void ANecromancerCharacter::CallAimSpell(int index_)
 {
+	spellBaseDamage = stats->GetBaseMagicDamage(); //Reset spellBaseDamage
 	if (currentState == EPlayerState::AIM)
 	{
 		if (SpellsInventory::GetInstance() && SpellCheck::GetInstance() && conjuror)
 		{
 			currentAimSpell = SpellsInventory::GetInstance()->GetAimSpell(index_); //Get The spell
 
-			if (SpellCheck::GetInstance()->CheckForAimSpell(currentAimSpell, bp, increaseHP, spellBaseDamage, effect))
+			if (SpellCheck::GetInstance()->CheckForAimSpell(currentAimSpell, stats->GetBP(), increaseHP, spellBaseDamage, effect))
 			{
 				bCastingSpell = true;
 				//TODO
@@ -429,13 +419,8 @@ void ANecromancerCharacter::ConjurAimSpell() //Called from animation notificatio
 {
 	if (currentAimSpell != EAimSpells::AIMNONE)
 	{
-		conjuror->ConjurAimSpell(currentAimSpell, projectileSummonLocation->GetComponentLocation(), GetViewRotation(), increaseHP, hp, spellBaseDamage, effect, currentStatusDuration); //Conjur the spell
+		conjuror->ConjurAimSpell(currentAimSpell, projectileSummonLocation->GetComponentLocation(), GetViewRotation(), increaseHP, stats->GetHP(), spellBaseDamage, effect, currentStatusDuration); //Conjur the spell
 		currentAimSpell = EAimSpells::AIMNONE; //Reset
-		uictrl->SetBloodPercentage(bp / maxBP);
-		if (increaseHP) //Only if we increased our health, update UI.
-		{
-			uictrl->SetHealthPercentage(hp / maxHP);
-		}
 	}
 }
 #pragma endregion
@@ -444,6 +429,7 @@ void ANecromancerCharacter::ConjurAimSpell() //Called from animation notificatio
 
 void ANecromancerCharacter::CallBloodSpell(int index_)
 {
+	spellBaseDamage = stats->GetBaseMagicDamage();
 	if (currentState == EPlayerState::AIM)
 	{
 		if (bAimingAtABloodPool)
@@ -452,11 +438,9 @@ void ANecromancerCharacter::CallBloodSpell(int index_)
 			{
 				currentBloodSpell = SpellsInventory::GetInstance()->GetBloodSpell(index_, corpseSpell); //Check if we can use the spell
 
-				if (SpellCheck::GetInstance()->CheckForBloodSpell(currentBloodSpell, bp, increaseHP, spellBaseDamage, effect))
+				if (SpellCheck::GetInstance()->CheckForBloodSpell(currentBloodSpell, stats->GetBP(), usingASpellSummon, spellBaseDamage, effect))
 				{
 					bCastingSpell = true;
-					//TODO
-					//Add magic stat to spellBaseDamage
 
 						switch (currentBloodSpell)
 						{
@@ -465,6 +449,9 @@ void ANecromancerCharacter::CallBloodSpell(int index_)
 							break;
 						case EBloodSpells::BLOODTORNADO:
 							animInstance->buseSpell2 = true;
+							break;
+						case EBloodSpells::SUMMONSKELETON:
+							animInstance->buseBloodSpell2 = true;
 							break;
 						default:
 							break;
@@ -477,15 +464,11 @@ void ANecromancerCharacter::CallBloodSpell(int index_)
 			if (SpellsInventory::GetInstance() && SpellCheck::GetInstance() && conjuror)
 			{
 				currentBloodSpell = SpellsInventory::GetInstance()->GetBloodSpell(index_, corpseSpell); //Check if we can use the spell
-				//TODO
-				//Add magic stat to spellBaseDamage
 
-				if (SpellCheck::GetInstance()->CheckForBloodSpell(currentBloodSpell, bp, increaseHP, spellBaseDamage, effect))
+				if (SpellCheck::GetInstance()->CheckForBloodSpell(currentBloodSpell, stats->GetBP(), usingASpellSummon, spellBaseDamage, effect))
 				{
 					bCastingSpell = true;
 					UE_LOG(LogTemp, Warning, TEXT("SPELL CHECK SUCCESS"));
-					//TODO
-					//Add magic stat to spellBaseDamage
 					if (!corpseSpell)
 					{
 						switch (currentBloodSpell) //Yes, you can use blood spells using enemy bodies
@@ -495,6 +478,9 @@ void ANecromancerCharacter::CallBloodSpell(int index_)
 							break;
 						case EBloodSpells::BLOODTORNADO:
 							animInstance->buseSpell2 = true;
+							break;
+						case EBloodSpells::SUMMONSKELETON:
+							animInstance->buseBloodSpell2 = true;
 							break;
 						default:
 							break;
@@ -529,7 +515,7 @@ void ANecromancerCharacter::ConjurBloodSpell()
 
 		bloodSpellLocation.Z += 200.0f; //The spell should be conjured above the magic circle
 		
-		conjuror->ConjurBloodSpell(currentBloodSpell, bloodSpellLocation, FRotator::ZeroRotator, increaseHP, hp, spellBaseDamage, effect, currentStatusDuration); //Conjur the spell
+		conjuror->ConjurBloodSpell(currentBloodSpell, bloodSpellLocation, GetViewRotation(), usingASpellSummon, stats->GetHP(), spellBaseDamage, effect, currentStatusDuration); //Conjur the spell
 		
 		if (corpseSpell) //If it's a corpse spell, check what it does
 		{
@@ -559,11 +545,6 @@ void ANecromancerCharacter::ConjurBloodSpell()
 		}
 
 		currentBloodSpell = EBloodSpells::BLOODNONE;
-		uictrl->SetBloodPercentage(bp / maxBP);
-		if (increaseHP) //Only if we increased our health, update UI.
-		{
-			uictrl->SetHealthPercentage(hp / maxHP);
-		}
 
 		if (interactable)
 			interactable->Interact(); //Absorbs blood pool
@@ -583,7 +564,7 @@ void ANecromancerCharacter::CallInnateSpell()
 
 	if (currentInnateSpell != EInnateSpells::INNATENONE)
 	{
-		if (SpellCheck::GetInstance()->CheckForInnateSpell(currentInnateSpell, bp, spellDamagesPlayer, hp, increaseHP, spellBaseDamage, effect))
+		if (SpellCheck::GetInstance()->CheckForInnateSpell(currentInnateSpell, stats->GetBP(), spellDamagesPlayer, stats->GetHP(), increaseHP, spellBaseDamage, effect))
 		{
 			//TODO
 			//Add magic stat to spellBaseDamage
@@ -593,8 +574,7 @@ void ANecromancerCharacter::CallInnateSpell()
 		{
 			if (spellIncreasesHealth || spellDamagesPlayer)
 			{
-				uictrl->SetBloodPercentage(bp / maxBP);
-				uictrl->SetHealthPercentage(hp / maxHP);
+
 			}
 			else
 			{
@@ -618,8 +598,7 @@ void ANecromancerCharacter::TakeDamage(float damage_)
 {
 	if (currentState != EPlayerState::DASH)
 	{
-		hp -= damage_;
-		uictrl->SetHealthPercentage(hp / maxHP);
+		stats->GetHP() -= damage_;
 		animInstance->bHit = true;
 		UE_LOG(LogTemp, Warning, TEXT("Player has taken damage %f"), damage_);
 
@@ -628,11 +607,19 @@ void ANecromancerCharacter::TakeDamage(float damage_)
 			prevState = currentState;
 			currentState = EPlayerState::HIT;
 		}
-		if (hp <= 0.5f)
+		if (stats->GetHP() <= 0.5f)
 		{
-			hp = 0.0f;
+			stats->GetHP() = 0.0f;
 			//Death animation
 			//Death screen
+			
+			//Placeholder code
+			//TODO
+			//Should call a death function that changes the UI
+			//Destroy();
+			ANecromancerGameMode* gameMode = Cast<ANecromancerGameMode>(GetWorld()->GetAuthGameMode());
+			if (gameMode)
+				gameMode->RespawnPlayer();
 		}
 	}
 }
@@ -730,8 +717,9 @@ void ANecromancerCharacter::AnimShootProjectile()
 	{
 		//FVector spawnPos = projectileSummonLocation->GetComponentLocation();
 		//FRotator spawnRot = GetViewRotation();
-		GetWorld()->SpawnActor<AAimProjectile>(projectile, projectileSummonLocation->GetComponentLocation(), GetViewRotation());
-		
+		AAimProjectile* proj = GetWorld()->SpawnActor<AAimProjectile>(projectile, projectileSummonLocation->GetComponentLocation(), GetViewRotation());
+		if (proj)
+			proj->SetDamage(stats->GetBaseDamage());		
 	}
 }
 
@@ -741,7 +729,7 @@ void ANecromancerCharacter::SpawnWall()
 	{
 		if (interactable)
 		{
-			interactable->WallAction(); //If aiming at a blood pool, spawn a wall. If aiming at a wall, destroy the wall
+			interactable->WallAction(GetActorRightVector().Rotation()); //If aiming at a blood pool, spawn a wall. If aiming at a wall, destroy the wall
 		}
 	}
 }
