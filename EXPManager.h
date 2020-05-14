@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include <memory>
+#include "HUD/PlayerUIController.h"
 
 /**
  * 
@@ -23,6 +23,7 @@ private:
 	int currentEXP;
 	int maxEXP;
 	int skillPoints;
+	UPlayerUIController* uictrl;
 
 public:
 	static EXPManager* GetInstance();
@@ -31,5 +32,6 @@ public:
 	inline int GetCurrentSkillPoints() const { return skillPoints; };
 	bool UpdateCurrentEXP(int expToBeAdded_); //Adds exp to the current amount. Returns true if there's a level up
 	inline void UseASkillPoint() { skillPoints--; };
+	inline void RegisterUICTRL(UPlayerUIController* uictrl_) { uictrl = uictrl_; };
 
 };

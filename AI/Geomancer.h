@@ -32,43 +32,44 @@ class NECROMANCER_API AGeomancer : public AKnight
 
 public:
 	AGeomancer();
-	void OnSeePlayer(APawn* pawn_) override;
-	void Tick(float DeltaTime) override;
-	void TakeRegularDamage(float damage_) override;
-	void TakeSpellDamage(float damage_) override;
-	void TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_) override;
+	virtual void OnSeePlayer(APawn* pawn_) override;
+	virtual void Tick(float DeltaTime) override;
+	virtual void TakeRegularDamage(float damage_) override;
+	virtual void TakeSpellDamage(float damage_) override;
+	virtual void TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_) override;
 
 	void EndAttack();
 	//Sitting
 	void EndSitting();
 
-	void SpawnCastProjectile() override;
-	void SpawnCastProjectile1();
-	void SpawnSpecialProjectile();
+	virtual void SpawnCastProjectile() override;
+	virtual void SpawnCastProjectile1();
+	virtual void SpawnSpecialProjectile();
 
 	void EvadeTeleport();
 
 
-	void ActivateZombie() override;
+	virtual void ActivateZombie() override;
 
 protected:
 
-	void BeginPlay() override;
-	void Death() override;
-	void Zombify() override;
-	void EndZombify() override;
-	void EndReload() override;
+	virtual void BeginPlay() override;
+	virtual void Death() override;
+	virtual void Zombify() override;
+	virtual void EndZombify() override;
+	virtual void EndReload() override;
 
-	float GetDistanceToPlayer() override;
+	virtual float GetDistanceToPlayer() override;
 
 		
-
+private:
 	UPROPERTY(EditAnywhere, Category = "Current State") //The current state is editable in the editor as the enemy could start sitting down or patrolling
 		EGeomancerState currentState;
 	class UGeoAnimInstance* animInstance;
 
+protected:
 	//Attack
-	void Attack();
+	virtual void Attack();
 	bool bHasChosenSpell;
 	int prevChosenSpell; //Keep track of which spell was chosen last to prevent spam
 
@@ -78,6 +79,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Casting")
 		USceneComponent* castSpell1Location;
 
+private:
 	void CalculateEvade(); //Run a random chance and see if you need to evade. Called inside take damage functions
 	UPROPERTY(EditAnywhere, Category = "Evasion")
 		float evadeRange; //How far forward can you go?

@@ -19,8 +19,8 @@ class NECROMANCER_API USpellConjuror : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	USpellConjuror();
-	void ConjurAimSpell(EAimSpells spell_, FVector spawnLocation_, FRotator spawnRotation_, bool increaseHP_, float& currentHP_, float damage, EStatusEffects status_, EStatusDuration duration_);
-	void ConjurBloodSpell(EBloodSpells spell_, FVector spawnLocation_, FRotator spawnRotation_, bool increaseHP_, float& currentHP_, float damage, EStatusEffects status_, EStatusDuration duration_);
+	void ConjurAimSpell(EAimSpells spell_, FVector spawnLocation_, FRotator spawnRotation_, bool increaseHP_, float& currentHP_, float damage, EStatusEffects status_, EStatusDuration duration_, APlayerController* playerController_, TSubclassOf<UPlayerCameraShake> cameraShake_);
+	void ConjurBloodSpell(EBloodSpells spell_, FVector spawnLocation_, FRotator spawnRotation_, bool increaseHP_, float& currentHP_, float damage, EStatusEffects status_, EStatusDuration duration_, APlayerController* playerController_, TSubclassOf<UPlayerCameraShake> cameraShake_);
 	void ConjurInnateSpell(EInnateSpells spell_, FVector spawnLocation_, EStatusEffects status_, EStatusDuration duration_);
 
 protected:
@@ -35,10 +35,5 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = Spells)
 		TArray<TSubclassOf<class ASummonBase>> summons;
-
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 		
 };

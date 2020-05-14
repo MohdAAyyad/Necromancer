@@ -4,6 +4,7 @@
 #include "EnemyProjectile.h"
 #include "AI/EnemyBase.h"
 #include "Necromancer/NecromancerCharacter.h"
+#include "Spells/Blood/SummonBase.h"
 #include "BloodWall.h"
 
 
@@ -16,6 +17,7 @@ AEnemyProjectile::AEnemyProjectile()
 	movement->InitialSpeed = 500.f;
 	movement->MaxSpeed = 500.f;
 	damage = 40.0f;
+	parent = nullptr;
 }
 
 void AEnemyProjectile::BeginPlay()
@@ -46,25 +48,48 @@ void AEnemyProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_); //This mainly for zombies
 			if (enemy)
 			{
-				if (!enemy->bZombie && !enemy->IsDead())
+				if (parent)
 				{
-					enemy->TakeSpellDamage(damage);
-					Destroy();
+					if (parent->bZombie) //If the parent is a zombie, then make sure it's attacking non-zombie enemies and updating the distracting enemy reference
+					{
+						if (!enemy->bZombie && !enemy->IsDead() && enemy != parent)
+						{
+							enemy->TakeSpellDamageFromZombie(parent, damage);
+							Destroy();
+						}
+					}
+					else //Otherwise, you're an enemy attacking a zombie
+					{
+						if (enemy->bZombie && enemy != parent)
+						{
+							enemy->TakeRegularDamage(damage);
+							Destroy();
+						}
+					}
 				}
 			}
 			else
 			{
-				ABloodWall* wall = Cast<ABloodWall>(otherActor_);
-				if (wall)
+				ASummonBase* summon = Cast<ASummonBase>(otherActor_);
+				if (summon)
 				{
-					wall->TakeDamage(damage);
+					summon->SummonTakeDamage(damage);
 					Destroy();
 				}
 				else
 				{
-					AAimProjectile* proj = Cast<AAimProjectile>(otherActor_);
-					if (proj)
+					ABloodWall* wall = Cast<ABloodWall>(otherActor_);
+					if (wall)
+					{
+						wall->TakeDamage(damage);
 						Destroy();
+					}
+					else
+					{
+						//AAimProjectile* proj = Cast<AAimProjectile>(otherActor_);
+						//if (proj)
+						Destroy();
+					}
 				}
 			}
 		}
@@ -79,7 +104,33 @@ void AEnemyProjectile::BindSphere()
 
 void AEnemyProjectile::ChangeProfileName(FString profile_)
 {
-	UE_LOG(LogTemp, Warning, TEXT("New profile %s"), *profile_);
+	//UE_LOG(LogTemp, Warning, TEXT("New profile %s"), *profile_);
 	sphere->SetCollisionProfileName(FName(*profile_));
 }
 
+void AEnemyProjectile::MoveProjectile(float speed_)
+{
+	//Projectiles that start with zero velocity should not get destroyed until they start moving
+	movement->InitialSpeed = movement->MaxSpeed = speed_;
+	movement->Velocity = GetActorForwardVector()*speed_;
+	FTimerHandle timeToDestroy;
+	GetWorld()->GetTimerManager().SetTimer(timeToDestroy, this, &AEnemyProjectile::DestroyProjectile, 6.0f, false);
+}
+
+void AEnemyProjectile::DestroyProjectile()
+{
+	Destroy();
+}
+
+void AEnemyProjectile::SetParent(class AEnemyBase* parent_)
+{
+	//UE_LOG(LogTemp, Warning, TEXT("Set parent has been called"));
+	parent = parent_;
+}
+
+void AEnemyProjectile::SetHoming(APawn* target)
+{
+	movement->HomingTargetComponent = target->GetRootComponent();
+	movement->bIsHomingProjectile = true;
+	movement->HomingAccelerationMagnitude = movement->Velocity.Size();
+}

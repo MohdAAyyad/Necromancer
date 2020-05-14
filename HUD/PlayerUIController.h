@@ -1,5 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-
+//TODO 
+//Add a variable to switch visibility of the spells menu
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,7 +8,6 @@
 #include "../SpellsInventory.h"
 #include "../Spells.h"
 #include "Engine/Canvas.h"
-#include "../EXPManager.h"
 #include "../PlayerStats.h"
 #include "PlayerUIController.generated.h"
 
@@ -36,6 +36,14 @@ protected:
 		bool bGameIsPaused;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		bool bSkillTreeMenuIsShown;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		FString highlightedSpellName; //When the mouse hovers over the spells in the menu, it should update the name and description
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		FString highlightedSpellDescription;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		bool bInDialogue;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		bool bQuestMenu;
 
 	UPROPERTY(EditAnywhere)
 		TArray<UTexture2D*> spellTextures;
@@ -48,13 +56,12 @@ protected:
 	UTexture2D* LookForAimTexture(EAimSpells spell_); //Looks through a switch statement to get the correct texture back
 	UTexture2D* LookForBloodTexture(EBloodSpells spell_); //Looks through a switch statement to get the correct texture back
 	UTexture2D* LookForInnateTexture(EInnateSpells spell_);
+
+	FString dialogue;
+	FString dialogueName;
 public:
 	void SetPlayerStatsPtr(UPlayerStats* stats_) { stats = stats_; };
 
-	UFUNCTION(BlueprintCallable)
-		void EquipAimSpell(const int index_);
-	UFUNCTION(BlueprintCallable)
-		void EquipBloodSpell(const int index_);
 	UFUNCTION(BlueprintCallable)
 		void EquipInnateSpell(const int index_);
 	UFUNCTION(BlueprintCallable)
@@ -90,6 +97,11 @@ public:
 	void UnlockBloodSpell(int index_);
 	UFUNCTION(BlueprintCallable)
 	void UnlockInnateSpell(int index_);
+
+	UFUNCTION(BlueprintCallable)
+		bool IsAimSpellUnlocked(int index_);
+	UFUNCTION(BlueprintCallable)
+		bool IsBloodSpellUnlocked(int index_);
 		
 
 	//EXP
@@ -103,18 +115,18 @@ public:
 	//Name And Description
 
 	UFUNCTION(BlueprintCallable)
-		FString GetAimName(int index_); //Returns unlocked spell name
+		FString GetEquippedAimName(int index_); //Returns unlocked spell name
 	UFUNCTION(BlueprintCallable)
-		FString GetAimDescription(int index_);//Returns unlocked spell Description
+		FString GetEquippedAimDescription(int index_);//Returns unlocked spell Description
 	UFUNCTION(BlueprintCallable)
 		FString GetLockedAimName(int index_);//Returns locked spell name
 	UFUNCTION(BlueprintCallable)
 		FString GetLockedAimDescription(int index_);//Returns locked spell Description
 
 	UFUNCTION(BlueprintCallable)
-		FString GetBloodName(int index_);
+		FString GetEquippedBloodName(int index_);
 	UFUNCTION(BlueprintCallable)
-		FString GetBloodDescription(int index_);
+		FString GetEquippedBloodDescription(int index_);
 	UFUNCTION(BlueprintCallable)
 		FString GetLockedBloodName(int index_);
 	UFUNCTION(BlueprintCallable)
@@ -128,6 +140,11 @@ public:
 		FString GetLockedInnateName(int index_);
 	UFUNCTION(BlueprintCallable)
 		FString GetLockedInnateDescription(int index_);
+
+	UFUNCTION(BlueprintCallable)
+		void SetName(FString name_);
+	UFUNCTION(BlueprintCallable)
+		void SetDescription(FString description_);
 
 
 	//Stats
@@ -148,4 +165,82 @@ public:
 		void AddHP();
 	UFUNCTION(BlueprintCallable)
 		void AddBP();
+
+	UFUNCTION(BlueprintCallable)
+		int GetEquippedAimNum();
+
+	UFUNCTION(BlueprintCallable)
+		int GetEquippedBloodNum();
+
+	//Dialogue
+
+	UFUNCTION(BlueprintCallable)
+		FString GetDialogue();
+	UFUNCTION(BlueprintCallable)
+		FString GetName();
+
+	void AppendNextChar(TCHAR nchar_);
+	void SetEntireDialogue(FString dialogue_); //Used when skipping dialogue
+	void SetDialogueName(FString name);
+	void ClearDialogue();
+	void EndDialogue();
+
+	//Quest
+	UFUNCTION(BlueprintCallable)
+		FString GetQuestName(int index_);
+	UFUNCTION(BlueprintCallable)
+		FString GetQuestDescription();
+	UFUNCTION(BlueprintCallable)
+		FString GetActiveQuestName();
+	UFUNCTION(BlueprintCallable)
+		void SetActiveQuest();
+	UFUNCTION(BlueprintCallable)
+		bool GetIsQuestCompleted(int index_);
+	UFUNCTION(BlueprintCallable)
+		void QuestMenu();
+	int shownQuest;
+	UFUNCTION(BlueprintCallable)
+		void SetShownQuest(int index_);
+	UFUNCTION(BlueprintCallable)
+		bool GetIsShownQuestCompleted();
+	UFUNCTION(BlueprintCallable)
+		bool IsThisTheShownQuest(); //Compares shown quest with active quest. If they're not equal, set active quest button should appear
+
+	UFUNCTION(BlueprintCallable)
+		void GoBack();
+
+	
+	UFUNCTION(BlueprintCallable)
+		bool GetCompletedQuestPrompt();
+	void PlayCompletedQuestPrompt();
+
+	UFUNCTION(BlueprintCallable)
+		bool GetNewQuestPrompt();
+	void PlayNewQuestPrompt();
+
+	UFUNCTION(BlueprintCallable)
+		bool GetUpdatedQuestPrompt();
+	void PlayUpdatedQuestPrompt();
+
+		void ResetPlayQuestPrompt();
+
+	float timeToRemoveScreenPrompt;
+	FTimerHandle timeToRemoveScreenPromptHandle;
+	int numOfQuests;
+	int numOfCompletedQuests;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		bool playCompletedPrompt;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		bool playNewPrompt;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		bool playUpdatedPrompt;
+
+	//Level Up
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		bool bHasLeveledUp;
+	UFUNCTION(BlueprintCallable)
+		bool GetHasLeveledUp();
+	void PlayLevelUpPrompt();
+	void ResetHasLeveledUp();
+	FTimerHandle timeToRemoveLevelUpPromptHandle;
 };

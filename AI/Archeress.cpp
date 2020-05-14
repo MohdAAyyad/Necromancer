@@ -17,7 +17,7 @@ AArcheress::AArcheress():AEnemyBase()
 	bDead = false;
 	currentState = EArcheressState::IDLE;
 	drawTime = 0.5f;
-	attackAcceptableDistance = 2000.0f;
+	attackAcceptableDistance = 5000.0f;
 
 	castChance = 0;
 
@@ -59,10 +59,13 @@ void AArcheress::OnSeePlayer(APawn* pawn_)
 	{
 		WhoToLookFor(pawn_);
 
-		if (!permenantTarget && !bZombie) //If we're a zombie, permenant target will be filled from inside who to look for
-			permenantTarget = pawn_;
-		else if (!permenantTarget && bZombie)
-			permenantTarget = enemyForZombie;
+		if (!distractingZombie)
+		{
+			if (!permenantTarget && !bZombie) //If we're a zombie, permenant target will be filled from inside who to look for
+				permenantTarget = pawn_;
+			else if (!permenantTarget && bZombie)
+				permenantTarget = enemyForZombie;
+		}
 	}
 }
 
@@ -95,15 +98,19 @@ void AArcheress::Attack()
 }
 void AArcheress::TakeRegularDamage(float damage_)
 {
-	if (!bDead)
+	if (!bDead || bZombie)
 	{
 		hp -= damage_;
 		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
 
-		if (hp <= 0.5f)
+		if (hp <= 0.5f && !bZombie)
 		{
 			bTypeOfBPToSpawn = false;
 			Death();
+		}
+		else if (hp <= 0.5f && bZombie)
+		{
+			EndZombify();
 		}
 		else
 		{
@@ -119,8 +126,8 @@ void AArcheress::TakeRegularDamage(float damage_)
 }
 void AArcheress::TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Taken spell damage %f"), damage_);
-	if (!bDead)
+	//UE_LOG(LogTemp, Warning, TEXT("Taken spell damage %f"), damage_);
+	if (!bDead || bZombie)
 	{
 		hp -= damage_;
 		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
@@ -152,7 +159,7 @@ void AArcheress::TakeSpellDamage(float damage_, EStatusEffects effect_, float du
 
 void AArcheress::TakeSpellDamage(float damage_)
 {
-	if (!bDead)
+	if (!bDead || bZombie)
 	{
 		hp -= damage_;
 		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
@@ -194,6 +201,8 @@ void AArcheress::Death()
 		AddEXP();
 
 	permenantTarget = nullptr;
+	enemyForZombie = nullptr;
+	distractingZombie = nullptr;
 }
 #pragma region Zombification
 
@@ -209,6 +218,7 @@ void AArcheress::Zombify()
 
 void AArcheress::EndZombify()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Inside End Zombify"));
 	currentState = EArcheressState::DEATH;
 	if (animInstance)
 		animInstance->Death();
@@ -242,9 +252,13 @@ void AArcheress::SpawnRegularArrow()
 	if (arrows[0])
 	{
 		AEnemyProjectile* proj = GetWorld()->SpawnActor<AEnemyProjectile>(arrows[0], arrowSummonLocation->GetComponentLocation(), vec.Rotation());
-		if (bZombie && proj)
+		if (proj)
 		{
-			proj->ChangeProfileName("ZombieProjectile");
+			if (bZombie)
+			{
+				proj->ChangeProfileName("ZombieProjectile");
+			}
+			proj->SetParent(this);
 		}
 	}
 
@@ -260,9 +274,13 @@ void AArcheress::DeactivateCastParticles()
 	if (arrows[1])
 	{
 		AEnemyProjectile* proj = GetWorld()->SpawnActor<AEnemyProjectile>(arrows[1], arrowSummonLocation->GetComponentLocation(), vec.Rotation());
-		if (bZombie && proj)
+		if (proj)
 		{
-			proj->ChangeProfileName("ZombieProjectile");
+			if (bZombie)
+			{
+				proj->ChangeProfileName("ZombieProjectile");
+			}
+			proj->SetParent(this);
 		}
 	}
 	currentState = EArcheressState::IDLE;

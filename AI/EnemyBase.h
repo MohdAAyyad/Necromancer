@@ -83,20 +83,24 @@ protected:
 
 	//Patrol
 	FVector moveLoc;
-	float patrolRadius;
-	bool hasPickedApatrolDestination;
 	virtual void Patrol();
+	int nextPatrolStopIndex; //Keep track the patrol path
+	int prevPatrolStopIndex;
+
+	UPROPERTY(EditAnywhere, Category="Patrol")
+		TArray<AActor*> patrolStops; //Determine patrol path
 
 	APawn* permenantTarget; //Doesn't turn to nullptr when the enemy loses sight of the target. Used when casting spells that do not care about cover
-
-
+	APawn* distractingZombie; // Used to store a reference to a zombie that attacks the enemy. The reference is used to change the target of the enemy distracting it away from the player.
 public:
 	virtual void TakeRegularDamage(float damage_) {};
 	virtual void TakeSpellDamage(float damage_) {};
 	virtual void TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_) {};
+	virtual void TakeSpellDamageFromZombie(APawn* zombie_, float damage_); //Used to update zombie reference
 	virtual EStatusEffects GetCurrentStatusEffect() { return currentStatusEffect; };
 	virtual void ApplyStatusEffect();
 	virtual void SpawnBloodPool();
+	virtual void distactingZombieIsDead(); //Called by the distracting zombie to make sure the enemy attacks the player again
 
 	virtual bool React() override { return false; };
 	virtual void Interact() override {};
@@ -116,5 +120,7 @@ public:
 	void DelayedExplosion();
 	void Explode(); //Spawns the blood explosion projectile
 	void DestroyBody() {Destroy();};
+
+	virtual bool IsEnemyAbsorbingAttack() { return false; }; //Overriden by Crypto and returns true when in absorb mode
 
 };

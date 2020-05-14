@@ -17,10 +17,15 @@ class NECROMANCER_API AEnemyProjectile : public AAimProjectile
 public:
 	AEnemyProjectile();
 	void ChangeProfileName(FString profile_);
+	void MoveProjectile(float speed_);
+	void SetParent(class AEnemyBase* parent_);
+
+	virtual inline void SetDamage(float amount_) override { damage = amount_; };
+	virtual void SetHoming(APawn* target);
 
 protected:
 
-	float damage;
+	class AEnemyBase* parent;
 
 		void OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			AActor* otherActor_,
@@ -31,4 +36,5 @@ protected:
 
 	    void BeginPlay() override;
 		void BindSphere() override;
+		void DestroyProjectile();
 };

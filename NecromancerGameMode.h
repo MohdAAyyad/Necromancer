@@ -11,16 +11,23 @@ class ANecromancerGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
-private:
+protected:
 	static FVector currentCheckpoint;
 	UPROPERTY(EditAnywhere)
 	FName currentLevelName;
+
+	UPROPERTY(EditAnywhere, Category = "Player")
+		TSubclassOf<AActor> player;
+
+	void BeginPlay() override;
 public:
 	ANecromancerGameMode();
 	void SetNewCheckpoint(FVector checkpointLoc_);
 	void RespawnPlayer();
 	void SetLevelName(FName level_);
 	FVector GetStartingPosition();
+	UFUNCTION(BlueprintCallable)
+		void NewGame();
 };
 
 

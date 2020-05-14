@@ -19,6 +19,8 @@
 #include "SpellConjuror.h"
 #include "HUD/PlayerUIController.h"
 #include "PlayerStats.h"
+#include "PlayerCameraShake.h"
+#include "DialogueHandle.h"
 #include "NecromancerCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -92,6 +94,10 @@ public:
 	bool bCastingSpell; //Used to make sure the player doesn't move while casting
 protected:
 	void BeginPlay() override;
+
+	//Camera shake
+	UPROPERTY(EditAnywhere, Category = "Camera Shake")
+		TSubclassOf<UPlayerCameraShake>cameraShake;
 
 	//Aiming
 	UPROPERTY(VisibleAnywhere)
@@ -210,4 +216,16 @@ protected:
 		UFUNCTION()
 			void SpawnWall();
 		void PlayWallAnimation();
+
+		//Dialogue
+		UPROPERTY(EditAnywhere, BlueprintReadOnly)
+			UDialogueHandle* dialogueHandle;
+
+
+		UPROPERTY(EditAnywhere, Category = "DialogueBoxCollision")
+			UBoxComponent* dialogueCollisionBox;
+
+		public:
+			void InitiateAutoDialogue();
+
 };

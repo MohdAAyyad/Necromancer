@@ -5,6 +5,7 @@
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "./Spells/Blood/SummonBase.h"
+#include "../NPC/PrisonerQuestNPC.h"
 #include "EnemyBase.h"
 
 AEnemyAIController::AEnemyAIController()
@@ -54,6 +55,21 @@ void AEnemyAIController::OnPossess(APawn* pawn_)
 				{
 					blackboardComponent->InitializeBlackboard(*(summon->summonBT->BlackboardAsset));
 					behaviorTreeComponent->StartTree(*(summon->summonBT));
+				}
+			}
+		}
+		else
+		{
+			APrisonerQuestNPC* prisoner = Cast<APrisonerQuestNPC>(pawn_);
+			if (prisoner)
+			{
+				if (prisoner->prisonerBT)
+				{
+					if (prisoner->prisonerBT->BlackboardAsset)
+					{
+						blackboardComponent->InitializeBlackboard(*(prisoner->prisonerBT->BlackboardAsset));
+						behaviorTreeComponent->StartTree(*(prisoner->prisonerBT));
+					}
 				}
 			}
 		}

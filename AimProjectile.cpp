@@ -44,6 +44,9 @@ AAimProjectile::AAimProjectile()
 	effect = EStatusEffects::NONE;
 	duration = EStatusDuration::MIN;
 	durationInSeconds = 0.0f;
+	playerController = nullptr;
+	cameraShake = nullptr;
+	bBeingAbsorbed = false;
 }
 
 // Called when the game starts or when spawned
@@ -71,21 +74,23 @@ void AAimProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 	{
 		//UGameplayStatics::SpawnDecalAttached(decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetRootComponent(),NAME_None,sweepResult_.ImpactPoint,sweepResult_.Normal.Rotation());
 
-		if (impact)
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f));
-
-		UGameplayStatics::SpawnDecalAtLocation(GetWorld(), decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetActorLocation(),sweepResult_.Normal.Rotation());
-		//UE_LOG(LogTemp, Warning, TEXT("Impact point %f %f %f"), sweepResult_.ImpactPoint.X, sweepResult_.ImpactPoint.Y, sweepResult_.ImpactPoint.Z);
+	//UE_LOG(LogTemp, Warning, TEXT("Impact point %f %f %f"), sweepResult_.ImpactPoint.X, sweepResult_.ImpactPoint.Y, sweepResult_.ImpactPoint.Z);
 
 		AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_);
 
 		if (enemy)
 		{
-			if (!enemy->IsDead())
-			{
-				enemy->TakeRegularDamage(damage);
-				Destroy();
-			}
+				if (!enemy->IsDead())
+				{
+					bBeingAbsorbed = enemy->IsEnemyAbsorbingAttack();
+					if (!bBeingAbsorbed) //Only if you're not being absorbed, should you damage the enemy
+					{
+						if (playerController && cameraShake)
+							playerController->PlayerCameraManager->PlayCameraShake(cameraShake, 0.5f);
+						enemy->TakeRegularDamage(damage);
+						Destroy();
+					}
+				}
 		}
 		else
 		{
@@ -102,6 +107,14 @@ void AAimProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 				if (proj)
 					Destroy();
 			}
+		}
+
+		if (!bBeingAbsorbed)
+		{
+			if (impact)
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f));
+
+			UGameplayStatics::SpawnDecalAtLocation(GetWorld(), decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetActorLocation(), sweepResult_.Normal.Rotation());
 		}
 	}
 }
@@ -132,9 +145,35 @@ void AAimProjectile::SetEffectAndDuration(EStatusEffects effect_, EStatusDuratio
 		break;
 	}
 }
-
-void AAimProjectile::SetDamage(float amount_)
+void AAimProjectile::SetControllerAndCameraShake(APlayerController* playerController_, TSubclassOf<UPlayerCameraShake> cameraShake_)
 {
-	damage = amount_;
+	playerController = playerController_;
+	cameraShake = cameraShake_;
 }
 
+void AAimProjectile::GetSmallerOverTime()
+{
+	//Get Smaller over time
+	//Called by Crypto when a projectile is being absorbed
+	FVector scale = GetActorScale();
+	scale.X -= 0.1f;
+	scale.Y -= 0.1f;
+	scale.Z -= 0.1f;
+	if (scale.X > 0.2f)
+	{
+		GetWorld()->GetTimerManager().SetTimer(timeHandleToGetReallySmall, this, &AAimProjectile::GetSmallerOverTime, 0.1f, false);
+	}
+}
+
+
+void AAimProjectile::UpdateRotation(FRotator rotation_)
+{
+	movement->bRotationFollowsVelocity = false;
+	SetActorRotation(rotation_);
+	movement->bRotationFollowsVelocity = true;
+}
+
+void AAimProjectile::UpdateVelocity(FVector vel_)
+{
+	movement->Velocity = vel_;
+}

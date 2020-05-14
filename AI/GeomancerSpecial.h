@@ -29,5 +29,12 @@ protected:
 		FTimerHandle enableSecondParticletimeHandle;
 		void EnableCollision();
 		void EnableSecondCollision();
+
+		void OnOverlap(UPrimitiveComponent* overlappedComponent_,
+			AActor* otherActor_,
+			UPrimitiveComponent* otherComp_,
+			int32 otherBodyIndex_,
+			bool bFromSweep_,
+			const FHitResult &sweepResult_)override;
 	
 };

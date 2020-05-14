@@ -6,6 +6,7 @@
 #include "GameFramework/HUD.h"
 #include "Engine/Canvas.h"
 #include "Blueprint/UserWidget.h"
+#include "PlayerUMG.h"
 #include "PlayerHUD.generated.h"
 
 /**
@@ -25,11 +26,14 @@ private:
 		UTexture2D* enemyTexture;
 	UPROPERTY(EditAnywhere)
 		UTexture2D* bloodPoolTexture;
-	UPROPERTY(EditAnywhere, Category = "HP and BP")
-		TSubclassOf<UUserWidget> HUDWdiget;
-	UPROPERTY(EditAnywhere, Category = "HP and BP")
-		UUserWidget* currentWidget;
+	UPROPERTY(EditAnywhere, Category = "Widgets")
+		TArray<TSubclassOf<UUserWidget>> HUDWdiget;
+	UUserWidget* mainMenuWidget;
+	UUserWidget* inGameWidget;
 
+
+	UPROPERTY(EditAnywhere, Category = "Widgets")
+		UPlayerUMG* widgett;
 
 
 public:
@@ -38,5 +42,9 @@ public:
 	inline void aimingAtBP() { crosshairTexture = bloodPoolTexture; };
 	inline void aimingAtEnemy() { crosshairTexture = enemyTexture; };
 	inline void aimingAtIdle(){ crosshairTexture = idleTexture; };
+	UFUNCTION(BlueprintCallable)
+		void SwitchToInGameWidget();
+
+
 
 };

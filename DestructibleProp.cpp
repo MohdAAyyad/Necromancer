@@ -50,7 +50,8 @@ void ADestructibleProp::TakeDamage(float damage_)
 		{
 			mesh->ApplyDamage(2.0f, GetActorLocation(), FVector::ZeroVector, 1.0f);
 			mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			GetWorld()->GetTimerManager().SetTimer(timeToDestroyHandle, this, &ADestructibleProp::DelayedDestroy, 6.0f, false);
+			box->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			GetWorld()->GetTimerManager().SetTimer(timeToDestroyHandle, this, &ADestructibleProp::DelayedDestroy, 3.0f, false);
 		}
 	}
 }

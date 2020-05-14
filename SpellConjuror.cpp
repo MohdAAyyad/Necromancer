@@ -8,7 +8,8 @@ USpellConjuror::USpellConjuror()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
+
 	// ...
 }
 
@@ -22,16 +23,7 @@ void USpellConjuror::BeginPlay()
 	
 }
 
-
-// Called every frame
-void USpellConjuror::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
-}
-
-void USpellConjuror::ConjurAimSpell(EAimSpells spell_, FVector spawnLocation_, FRotator spawnRotation_, bool increaseHP_, float& currentHP_, float damage_, EStatusEffects status_, EStatusDuration duration_)
+void USpellConjuror::ConjurAimSpell(EAimSpells spell_, FVector spawnLocation_, FRotator spawnRotation_, bool increaseHP_, float& currentHP_, float damage_, EStatusEffects status_, EStatusDuration duration_, APlayerController* playerController_, TSubclassOf<UPlayerCameraShake> cameraShake_)
 {
 	int i = static_cast<int>(spell_);
 	if ( i <= aimSpellProjectiles.Num() - 1)
@@ -41,12 +33,15 @@ void USpellConjuror::ConjurAimSpell(EAimSpells spell_, FVector spawnLocation_, F
 			AAimProjectile* proj = GetWorld()->SpawnActor<AAimProjectile>(aimSpellProjectiles[i], spawnLocation_, spawnRotation_);
 
 			if (proj)
+			{
 				proj->SetDamage(damage_); //Adds player base magic damage + spell magic damage to the projectile
+				proj->SetControllerAndCameraShake(playerController_, cameraShake_);
+			}
 		}
 	}
 }
 
-void USpellConjuror::ConjurBloodSpell(EBloodSpells spell_, FVector spawnLocation_, FRotator spawnRotation_, bool usingASpellSummon_, float& currentHP_, float damage_, EStatusEffects status_, EStatusDuration duration_)
+void USpellConjuror::ConjurBloodSpell(EBloodSpells spell_, FVector spawnLocation_, FRotator spawnRotation_, bool usingASpellSummon_, float& currentHP_, float damage_, EStatusEffects status_, EStatusDuration duration_,APlayerController* playerController_, TSubclassOf<UPlayerCameraShake> cameraShake_)
 {
 	int i = static_cast<int>(spell_);
 	if (!usingASpellSummon_) //Is this a summon spell?
@@ -57,7 +52,10 @@ void USpellConjuror::ConjurBloodSpell(EBloodSpells spell_, FVector spawnLocation
 			{
 				AAimProjectile* proj = GetWorld()->SpawnActor<AAimProjectile>(bloodSpellProjectiles[i], spawnLocation_, spawnRotation_);
 				if (proj)
+				{
 					proj->SetDamage(damage_); //Adds player base magic damage + spell magic damage to the projectile
+					proj->SetControllerAndCameraShake(playerController_, cameraShake_);
+				}
 			}
 		}
 	}

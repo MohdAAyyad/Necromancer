@@ -5,6 +5,8 @@
 #include "Quest/Checkpoint.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
+#include "NecromancerCharacter.h"
+#include "HUD/PlayerHUD.h"
 
 FVector ANecromancerGameMode::currentCheckpoint = FVector::ZeroVector;
 
@@ -18,6 +20,11 @@ ANecromancerGameMode::ANecromancerGameMode()
 	}
 }
 
+void ANecromancerGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
 void ANecromancerGameMode::SetNewCheckpoint(FVector checkpointLoc_)
 {
 	currentCheckpoint = checkpointLoc_;
@@ -27,13 +34,10 @@ void ANecromancerGameMode::RespawnPlayer()
 {
 	//Reload current level
 	UGameplayStatics::OpenLevel(GetWorld(), currentLevelName, true);
-	//If there's a checkpoint, move the player to the checkpoint
-	//CurrentCheckPoint is set to nullptr when we load new levels
-	//if (currentCheckpoint)
-//	{
-	//	GetWorld()->GetFirstPlayerController()->GetPawn()->SetActorLocation(currentCheckpoint->GetCheckpointLocation());
-	//}
-	//Otherwise, the player will spawn where the networkplayerstart is at inside the level
+	ANecromancerCharacter* playerPtr = Cast<ANecromancerCharacter>(GetWorld()->SpawnActor<AActor>(player, currentCheckpoint, FRotator::ZeroRotator));
+	if(playerPtr)
+		GetWorld()->GetFirstPlayerController()->Possess(playerPtr);
+
 }
 
 //Called when level transitioning
@@ -45,4 +49,10 @@ void ANecromancerGameMode::SetLevelName(FName level_)
 FVector ANecromancerGameMode::GetStartingPosition()
 {
 	return currentCheckpoint;
+}
+
+void ANecromancerGameMode::NewGame()
+{
+	currentLevelName = FName(TEXT("MA1-1_Intro"));
+	RespawnPlayer();
 }

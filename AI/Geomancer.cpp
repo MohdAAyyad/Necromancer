@@ -20,7 +20,7 @@ AGeomancer::AGeomancer() :AKnight()
 	currentState = EGeomancerState::SITTING;
 	permenantTarget = nullptr;
 	bHasChosenSpell = false;
-	evadeRange = 500.0f;
+	evadeRange = 700.0f;
 	evadeDestination = FVector::ZeroVector;
 	bhasChosenEvadeDestination = false;
 
@@ -62,8 +62,51 @@ void AGeomancer::Tick(float DeltaTime)
 			//Teleports to another location
 			if (!bhasChosenEvadeDestination)
 			{
+				FHitResult aimHit;
+				FVector start = GetActorLocation();
+				//start.Z += 550.0f;
+				FVector direction = GetActorRightVector();
+				FCollisionQueryParams colParams = FCollisionQueryParams::DefaultQueryParam;
+
+				float correctionDistance = 0.0f;
+
+				//Find a place to teleport to without getting stuck inside another object
+
+				//Check right
+				if (GetWorld()->LineTraceSingleByChannel(aimHit, start, direction*evadeRange + start, ECC_Visibility, colParams))
+				{
+					//UE_LOG(LogTemp, Warning, TEXT("Right did not work %s") , *aimHit.GetActor()->GetName());
+					//Check left
+					direction = -GetActorRightVector();
+					
+					if (GetWorld()->LineTraceSingleByChannel(aimHit, start, direction*evadeRange + start, ECC_Visibility, colParams))
+					{
+						//UE_LOG(LogTemp, Warning, TEXT("Left did not work %s"), *aimHit.GetActor()->GetName());
+						//Check forward
+						direction = GetActorForwardVector();
+						if (GetWorld()->LineTraceSingleByChannel(aimHit, start, direction*evadeRange + start, ECC_Visibility, colParams))
+						{
+							//UE_LOG(LogTemp, Warning, TEXT("Forward did not work %s"), *aimHit.GetActor()->GetName());
+							//check back
+							direction = -GetActorForwardVector();
+
+							if (GetWorld()->LineTraceSingleByChannel(aimHit, start, direction*evadeRange + start, ECC_Visibility, colParams))
+							{
+								//UE_LOG(LogTemp, Warning, TEXT("Back did not work %s"), *aimHit.GetActor()->GetName());
+								//If all 4 directions are a no-go within the evade range, then go direction with a correction distance
+								direction = GetActorForwardVector();
+								correctionDistance = 200.0f;
+							}
+						}
+					}
+				}
+
+				evadeDestination = start + direction * evadeRange;
+				//evadeDestination.Z -= 550.0f;
+				evadeDestination.Y -= correctionDistance;
+
 				//Always teleport behind the player
-				evadeDestination = permenantTarget->GetActorLocation() - permenantTarget->GetActorForwardVector()*evadeRange;
+				//evadeDestination = permenantTarget->GetActorLocation() - permenantTarget->GetActorForwardVector()*evadeRange;
 				bhasChosenEvadeDestination = true;
 			}
 			else
@@ -136,10 +179,13 @@ void AGeomancer::OnSeePlayer(APawn* pawn_)
 	{
 		WhoToLookFor(pawn_); //Look for player or enemy?
 
-		if (!permenantTarget && !bZombie) //If we're a zombie, permenant target will be filled from inside who to look for
-			permenantTarget = pawn_;
-		else if (!permenantTarget && bZombie)
-			permenantTarget = enemyForZombie;
+		if (!distractingZombie)
+		{
+			if (!permenantTarget && !bZombie) //If we're a zombie, permenant target will be filled from inside who to look for
+				permenantTarget = pawn_;
+			else if (!permenantTarget && bZombie)
+				permenantTarget = enemyForZombie;
+		}
 	}
 }
 void AGeomancer::Attack()
@@ -215,12 +261,18 @@ void AGeomancer::Death()
 	bDead = true;
 	aiController->SetSeenTarget(nullptr);
 	permenantTarget = nullptr;
+	enemyForZombie = nullptr;
 	aiController->SetDead();
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	if (!hasAddedEXP)
 		AddEXP();
+
+	enemyForZombie = nullptr;
+	permenantTarget = nullptr;
+	distractingZombie = nullptr;
+
 }
 void AGeomancer::Zombify()
 {
@@ -259,25 +311,32 @@ void AGeomancer::SpawnCastProjectile()
 
 		AEnemyProjectile* proj = GetWorld()->SpawnActor<AEnemyProjectile>(projectiles[0], castSpellLocation->GetComponentLocation(), spawnRot);
 
-		if (bZombie && proj)
+		if (proj)
 		{
-			proj->ChangeProfileName("ZombieProjectile");
+			if (bZombie)
+			{
+				proj->ChangeProfileName("ZombieProjectile");
+			}
+			proj->SetParent(this);
 		}
 	}
 }
 void AGeomancer::SpawnCastProjectile1()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Spanw Cast Proj 1"));
-	//TODO
+	//UE_LOG(LogTemp, Warning, TEXT("Spanw Cast Proj 1"));
 	if (projectiles[1])
 	{
 		FRotator spawnRot = (aiController->GetPlayerLocation() - GetActorLocation()).Rotation();
 
 		AEnemyProjectile* proj = GetWorld()->SpawnActor<AEnemyProjectile>(projectiles[1], castSpell1Location->GetComponentLocation(), spawnRot);
 
-		if (bZombie && proj)
+		if (proj)
 		{
-			proj->ChangeProfileName("ZombieProjectile");
+			if (bZombie)
+			{
+				proj->ChangeProfileName("ZombieProjectile");
+			}
+			proj->SetParent(this);
 		}
 	}
 }
@@ -293,9 +352,13 @@ void AGeomancer::SpawnSpecialProjectile()
 			summonLoc.Z -= 100.0f;
 			AEnemyProjectile* proj = GetWorld()->SpawnActor<AEnemyProjectile>(projectiles[2], summonLoc, FRotator::ZeroRotator);
 
-			if (bZombie && proj)
+			if (proj)
 			{
-				proj->ChangeProfileName("ZombieProjectile");
+				if (bZombie)
+				{
+					proj->ChangeProfileName("ZombieProjectile");
+				}
+				proj->SetParent(this);
 			}
 		}
 	}
@@ -303,15 +366,19 @@ void AGeomancer::SpawnSpecialProjectile()
 
 void AGeomancer::TakeRegularDamage(float damage_)
 {
-	if (!bDead)
+	if (!bDead || bZombie)
 	{
 		hp -= damage_;
 		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
 
-		if (hp <= 0.5f)
+		if (hp <= 0.5f && !bZombie)
 		{
 			bTypeOfBPToSpawn = false;
 			Death();
+		}
+		else if (hp <= 0.5f && bZombie)
+		{
+			EndZombify();
 		}
 		else
 		{
@@ -334,7 +401,7 @@ void AGeomancer::TakeRegularDamage(float damage_)
 }
 void AGeomancer::TakeSpellDamage(float damage_)
 {
-	if (!bDead)
+	if (!bDead || bZombie)
 	{
 		hp -= damage_;
 		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
@@ -364,7 +431,7 @@ void AGeomancer::TakeSpellDamage(float damage_)
 }
 void AGeomancer::TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_)
 {
-	if (!bDead)
+	if (!bDead || bZombie)
 	{
 		hp -= damage_;
 		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);

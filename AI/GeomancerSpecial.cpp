@@ -2,6 +2,8 @@
 
 
 #include "GeomancerSpecial.h"
+#include "Necromancer/NecromancerCharacter.h"
+#include "BloodWall.h"
 
 AGeomancerSpecial::AGeomancerSpecial() : AEnemyProjectile()
 {
@@ -40,4 +42,49 @@ void AGeomancerSpecial::EnableSecondCollision()
 	if (secondParticles)
 		secondParticles->ActivateSystem(true);
 }
+
+void AGeomancerSpecial::OnOverlap(UPrimitiveComponent* overlappedComponent_,
+	AActor* otherActor_,
+	UPrimitiveComponent* otherComp_,
+	int32 otherBodyIndex_,
+	bool bFromSweep_,
+	const FHitResult &sweepResult_)
+{
+	if (otherActor_ != nullptr && otherComp_ != nullptr && otherActor_ != this)
+	{
+		if (impact)
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(0.2f, 0.2f, 0.2f));
+
+		ANecromancerCharacter* player = Cast<ANecromancerCharacter>(otherActor_);
+		if (player)
+		{
+			player->TakeDamage(damage);
+			sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			UE_LOG(LogTemp, Warning, TEXT("UMMMMMMMMMM"));
+		}
+		else
+		{
+			AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_); //This mainly for zombies
+			if (enemy)
+			{
+				if (!enemy->bZombie && !enemy->IsDead())
+				{
+					enemy->TakeSpellDamage(damage);
+					sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				}
+			}
+			else
+			{
+				ABloodWall* wall = Cast<ABloodWall>(otherActor_);
+				if (wall)
+				{
+					wall->TakeDamage(damage);
+					sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				}
+			}
+		}
+
+	}
+}
+
 

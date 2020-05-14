@@ -8,12 +8,15 @@ void APlayerHUD::BeginPlay()
 	Super::BeginPlay();
 	crosshairTexture = idleTexture;
 
-	if (HUDWdiget != nullptr)
+	//Create pointers to the widgets
+	if (HUDWdiget[0] != nullptr)
 	{
-		currentWidget = CreateWidget<UUserWidget>(GetWorld(), HUDWdiget);
+		mainMenuWidget = CreateWidget<UUserWidget>(GetWorld(), HUDWdiget[0]);
+	}
 
-		if (currentWidget)
-			currentWidget->AddToViewport();
+	if (HUDWdiget[1] != nullptr)
+	{
+		inGameWidget = CreateWidget<UUserWidget>(GetWorld(), HUDWdiget[1]);
 	}
 }
 
@@ -32,5 +35,16 @@ void APlayerHUD::DrawHUD()
 		FCanvasTileItem TileItem(CrossHairDrawPosition, crosshairTexture->Resource, FLinearColor::White);
 		TileItem.BlendMode = SE_BLEND_Translucent;
 		Canvas->DrawItem(TileItem);
+	}
+}
+
+void APlayerHUD::SwitchToInGameWidget()
+{
+	if (inGameWidget)
+	{
+		if (mainMenuWidget)
+			mainMenuWidget->RemoveFromViewport();
+
+		inGameWidget->AddToViewport();
 	}
 }

@@ -10,14 +10,15 @@ TUniquePtr<SpellsInventory, TDefaultDelete<SpellsInventory>> SpellsInventory::in
 
 SpellsInventory::SpellsInventory()
 {
-	aimSpellsCount = 3;
-	bloodSpellsCount = 3;
+	aimSpellsCount = 0;
+	bloodSpellsCount = 0;
 	maxAimSpellsCount = 4;
 	maxBloodSpellsCount = 4;
 	currentInnateSpell = EInnateSpells::INNATENONE;
 
 	UnlockBloodSpell(EBloodSpells::SUMMONSKELETON);
 	UnlockBloodSpell(EBloodSpells::SERVEINDEATH);
+	UnlockBloodSpell(EBloodSpells::BLOODTORNADO);
 	UnlockAimSpell(EAimSpells::BLOODROCKET);
 }
 
@@ -50,13 +51,13 @@ bool SpellsInventory::IncreaseAimSpellCount() //Called when the player increases
 	return false;
 }
 
-bool SpellsInventory::EquipNewAimSpell(const int index_) //Called when the player equips a new aim spell
+bool SpellsInventory::EquipNewAimSpell(const EAimSpells spell_) //Called when the player equips a new aim spell
 {
-	if (aimSpells.Num() + 1 <= aimSpellsCount && index_<=unlockedAimSpells.Num()-1 && index_>=0)
+	if (aimSpells.Num() + 1 <= maxAimSpellsCount)
 	{
-		if (!aimSpells.Contains(unlockedAimSpells[index_]))
+		if (!aimSpells.Contains(spell_))
 		{
-			aimSpells.Add(unlockedAimSpells[index_]);
+			aimSpells.Add(spell_);
 			return true;
 		}
 	}
@@ -66,15 +67,6 @@ void SpellsInventory::RemoveAimSpell(const int index_) //Called when the player 
 {
 	if(aimSpells.Num() > 0 && index_ <= aimSpells.Num() - 1 && index_ >= 0)
 	   aimSpells.RemoveAt(index_);
-}
-
-EAimSpells SpellsInventory::GetAimSpell(const int index_)
-{
-	if (index_ <= aimSpells.Num() - 1 && index_ >= 0)
-	{
-		return aimSpells[index_];
-	}
-	return EAimSpells::AIMNONE;
 }
 
 EAimSpells SpellsInventory::GetAimSpellForTexture(int index_)
@@ -114,13 +106,14 @@ bool SpellsInventory::IncreaseBloodSpellCount()//Called when the player increase
 	return false;
 }
 
-bool SpellsInventory::EquipNewBloodSpell(const int index_) //Called when the player equips a new blood spell
+bool SpellsInventory::EquipNewBloodSpell(const EBloodSpells spell_) //Called when the player equips a new blood spell
 {
-	if ( bloodSpells.Num() + 1 <= bloodSpellsCount && index_ <= unlockedBloodSpells.Num() - 1 && index_ >= 0)
+	//Check whether you can add a spell (less than you max count, the idea is the player would be able to increase the count with time), and check if the index is within the range of unlocked spells
+	if ( bloodSpells.Num() + 1 <= maxBloodSpellsCount)
 	{
-		if (!bloodSpells.Contains(unlockedBloodSpells[index_]))
+		if (!bloodSpells.Contains(spell_))
 		{
-			bloodSpells.Add(unlockedBloodSpells[index_]);
+			bloodSpells.Add(spell_);
 			return true;
 		}
 	}
@@ -249,7 +242,7 @@ FString SpellsInventory::GetAimSpellDescription(EAimSpells spell_)
 	case EAimSpells::BLOODROCKET:
 		return "Shoots a rocket of blood that explodes on impact.";
 	case EAimSpells::BLOODTIMEBOMB:
-		return "Shoots a bomb that sticks to its target and explodes after a few a seconds.";
+		return "Shoots a bomb that sticks to its target and explodes \n after a few a seconds.";
 	default:
 		return "";
 	}
@@ -282,7 +275,7 @@ FString SpellsInventory::GetBloodSpellDescription(EBloodSpells spell_)
 	case EBloodSpells::BLOODMIASMA:
 		return "Creates a cloud of miasma that poisons enemies who pass through it.";
 	case EBloodSpells::BLOODTORNADO:
-		return "Creates a tornado of blood wrecking havoc in its path.";
+		return "Creates a tornado of blood wreacking havoc in its path.";
 	case EBloodSpells::SERVEINDEATH:
 		return "Turns a dead enemy into an undead attacking enemies close to it.";
 	case EBloodSpells::BLOODEXPLOSION:
@@ -313,7 +306,7 @@ FString SpellsInventory::GetInnateSpellDescription(EInnateSpells spell_)
 	case EInnateSpells::FLESHISASERVANT:
 		return "Flesh Is A Servant";
 	default:
-		return "Consumes 20% HP and restores 20% BPs";
+		return "Consumes 35% HP and restores 20% BPs";
 	}
 	return "";
 }

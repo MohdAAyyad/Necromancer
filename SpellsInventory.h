@@ -21,18 +21,21 @@ public:
 	static SpellsInventory* GetInstance();
 
 	void UnlockAimSpell(EAimSpells spell_); //Adds spell to the unlocked array
-	bool EquipNewAimSpell(const int index_); //Called when the player equips a new aim spell
+	bool EquipNewAimSpell(const EAimSpells spell_); //Called when the player equips a new aim spell
 	void RemoveAimSpell(const int index_); //Called when the player unequips a new aim spell
-	EAimSpells GetAimSpell(const int index_);
 	EAimSpells GetAimSpellForTexture(int index_); //Gives UI Controller the spell inside unlockedAimSpells at the specified index
 	EAimSpells GetEquippedAimSpellForTexture(int index_); //Gives UI Controller the spell inside aimSpells at the specified index
 
+	int GetAimSpellsNum() { return aimSpells.Num();  };
+
 	void UnlockBloodSpell(EBloodSpells spell_);
-	bool EquipNewBloodSpell(const int index_); //Called when the player equips a new blood spell
+	bool EquipNewBloodSpell(const EBloodSpells spell_); //Called when the player equips a new blood spell
 	void RemoveBloodSpell(const int index); //Called when the player unequips a new blood spell
 	EBloodSpells GetBloodSpell(const int index_, bool& corpseSpell_);
 	EBloodSpells GetBloodSpellForTexture(int index_); //Gives UI Controller the spell inside unlockedBloodSpells at the specified index
 	EBloodSpells GetEquippedBloodSpellForTexture(int index_); //Gives UI Controller the spell inside bloodSpells at the specified index
+
+	int GetBloodSpellsNum() { return bloodSpells.Num(); };
 
 	bool IncreaseAimSpellCount(); //Called when the player increases the number of equipped aim spells
 	bool IncreaseBloodSpellCount();//Called when the player increases the number of equipped blood spells

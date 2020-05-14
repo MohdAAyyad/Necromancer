@@ -13,6 +13,7 @@ EXPManager::EXPManager()
 	currentEXP = 0;
 	maxEXP = 200;
 	skillPoints = 0;
+	uictrl = nullptr;
 }
 
 EXPManager::~EXPManager()
@@ -40,6 +41,8 @@ bool EXPManager::UpdateCurrentEXP(int expToBeAdded_)
 		{
 			UpdateCurrentEXP(0); //If the current exp is still more than the max exp, then level up again
 		}
+		if (uictrl)
+			uictrl->PlayLevelUpPrompt();
 		return true; //Has leveled up
 	}
 	return false; //No level up

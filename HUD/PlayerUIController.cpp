@@ -2,6 +2,9 @@
 
 
 #include "PlayerUIController.h"
+#include "TimerManager.h"
+#include "../EXPManager.h"
+#include "../QuestManager.h"
 
 
 // Sets default values for this component's properties
@@ -12,7 +15,20 @@ UPlayerUIController::UPlayerUIController()
 	PrimaryComponentTick.bCanEverTick = false;
 	bGameIsPaused = false;
 	bSkillTreeMenuIsShown = false;
+	bInDialogue = false;
+	bQuestMenu = false;
 	spellTextures.Reserve(40);
+	highlightedSpellName = false;
+	highlightedSpellDescription = false;
+	highlightedSpellName = "";
+	highlightedSpellDescription = "";
+	shownQuest = 0;
+	timeToRemoveScreenPrompt = 2.5f;
+	numOfQuests = 0;
+	numOfCompletedQuests = 0;
+	playCompletedPrompt = false;
+	playNewPrompt = false;
+
 	// ...
 }
 
@@ -21,6 +37,10 @@ UPlayerUIController::UPlayerUIController()
 void UPlayerUIController::BeginPlay()
 {
 	Super::BeginPlay();
+	numOfCompletedQuests = QuestManager::GetInstance()->GetCompletedQuestsCount();
+	numOfQuests = QuestManager::GetInstance()->GetQuestsCount();
+	EXPManager::GetInstance()->RegisterUICTRL(this);
+	QuestManager::GetInstance()->RegisterUICTRL(this);
 	// ...
 	
 }
@@ -31,31 +51,6 @@ void UPlayerUIController::TickComponent(float DeltaTime, ELevelTick TickType, FA
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
-}
-
-void UPlayerUIController::EquipAimSpell(const int index_)
-{
-	if (SpellsInventory::GetInstance()->EquipNewAimSpell(index_))
-	{
-
-	}
-	else
-	{
-		//Play error sound
-	}
-}
-
-
-void UPlayerUIController::EquipBloodSpell(const int index_)
-{
-	if (SpellsInventory::GetInstance()->EquipNewBloodSpell(index_))
-	{
-
-	}
-	else
-	{
-		//Play error sound
-	}
 }
 
 void UPlayerUIController::EquipInnateSpell(const int index_)
@@ -99,7 +94,7 @@ float UPlayerUIController::UpdateBlood() const
 
 UTexture2D*  UPlayerUIController::GetAimTexture(int index_)
 {
-	return LookForAimTexture(SpellsInventory::GetInstance()->GetAimSpellForTexture(index_));
+	return LookForAimTexture(static_cast<EAimSpells>(index_));
 }
 
 UTexture2D*  UPlayerUIController::GetEquippedAimTexture(int index_)
@@ -109,7 +104,7 @@ UTexture2D*  UPlayerUIController::GetEquippedAimTexture(int index_)
 
 UTexture2D*  UPlayerUIController::GetBloodTexture(int index_)
 {
-	return LookForBloodTexture(SpellsInventory::GetInstance()->GetBloodSpellForTexture(index_));
+	return LookForBloodTexture(static_cast<EBloodSpells>(index_));
 }
 
 UTexture2D*  UPlayerUIController::GetEquippedBloodTexture(int index_)
@@ -163,7 +158,6 @@ UTexture2D* UPlayerUIController::LookForBloodTexture(EBloodSpells spell_)
 	{
 	case EBloodSpells::BLOODNONE:
 		return spellTextures[0];
-		break;
 	case EBloodSpells::BLOODMIASMA:
 		return spellTextures[16];
 	case EBloodSpells::SERVEINDEATH:
@@ -225,25 +219,53 @@ int UPlayerUIController::GetEXPToLevelUp()
 }
 
 
+int UPlayerUIController::GetEquippedAimNum()
+{
+	return (SpellsInventory::GetInstance()->GetAimSpellsNum());
+}
+
+
+int UPlayerUIController::GetEquippedBloodNum()
+{
+	return (SpellsInventory::GetInstance()->GetBloodSpellsNum());
+}
+
+
 #pragma region Unlock Spells
 
 void UPlayerUIController::UnlockAimSpell(int index_)
 {
 	//Make sure we have skill points and we have not unlocked the spell yet
 	EAimSpells spell_ = static_cast<EAimSpells>(index_);
-	if (EXPManager::GetInstance()->GetCurrentSkillPoints() > 0 && !SpellsInventory::GetInstance()->IsAimSpellUnlocked(spell_))
+	if (!SpellsInventory::GetInstance()->IsAimSpellUnlocked(spell_)) //If we have yet to unlock the spell, check if we have enough skill points and unlock it, then equip it
 	{
-		SpellsInventory::GetInstance()->UnlockAimSpell(spell_);
-		EXPManager::GetInstance()->UseASkillPoint();
+		if (EXPManager::GetInstance()->GetCurrentSkillPoints() > 0)
+		{
+			SpellsInventory::GetInstance()->UnlockAimSpell(spell_);
+			SpellsInventory::GetInstance()->EquipNewAimSpell(spell_);
+			EXPManager::GetInstance()->UseASkillPoint();
+		}
+	}
+	else //We have already unlocked the spell, that means we want to equip it
+	{
+		SpellsInventory::GetInstance()->EquipNewAimSpell(spell_);
 	}
 }
 void UPlayerUIController::UnlockBloodSpell(int index_)
 {
 	EBloodSpells spell_ = static_cast<EBloodSpells>(index_);
-	if (EXPManager::GetInstance()->GetCurrentSkillPoints() > 0 && !SpellsInventory::GetInstance()->IsBloodSpellUnlocked(spell_))
+	if (!SpellsInventory::GetInstance()->IsBloodSpellUnlocked(spell_))
 	{
-		SpellsInventory::GetInstance()->UnlockBloodSpell(spell_);
-		EXPManager::GetInstance()->UseASkillPoint();
+		if (EXPManager::GetInstance()->GetCurrentSkillPoints() > 0)
+		{
+			SpellsInventory::GetInstance()->UnlockBloodSpell(spell_);
+			SpellsInventory::GetInstance()->EquipNewBloodSpell(spell_);
+			EXPManager::GetInstance()->UseASkillPoint();
+		}
+	}
+	else
+	{
+		SpellsInventory::GetInstance()->EquipNewBloodSpell(spell_);
 	}
 }
 void UPlayerUIController::UnlockInnateSpell(int index_)
@@ -255,19 +277,31 @@ void UPlayerUIController::UnlockInnateSpell(int index_)
 		EXPManager::GetInstance()->UseASkillPoint();
 	}
 }
+
+bool UPlayerUIController::IsAimSpellUnlocked(int index_)
+{
+	EAimSpells spell_ = static_cast<EAimSpells>(index_);
+	return (SpellsInventory::GetInstance()->IsAimSpellUnlocked(spell_));
+}
+
+bool UPlayerUIController::IsBloodSpellUnlocked(int index_)
+{
+	EBloodSpells spell_ = static_cast<EBloodSpells>(index_);
+	return (SpellsInventory::GetInstance()->IsBloodSpellUnlocked(spell_));
+}
 #pragma endregion
 
 
 #pragma region Name And Description
 
-FString UPlayerUIController::GetAimName(int index_)
+FString UPlayerUIController::GetEquippedAimName(int index_)
 {
-	return(SpellsInventory::GetInstance()->GetAimSpellName(SpellsInventory::GetInstance()->GetAimSpellForTexture(index_)));
+	return(SpellsInventory::GetInstance()->GetAimSpellName(SpellsInventory::GetInstance()->GetEquippedAimSpellForTexture(index_)));
 }
 
-FString UPlayerUIController::GetAimDescription(int index_)
+FString UPlayerUIController::GetEquippedAimDescription(int index_)
 {
-	return(SpellsInventory::GetInstance()->GetAimSpellDescription(SpellsInventory::GetInstance()->GetAimSpellForTexture(index_)));
+	return(SpellsInventory::GetInstance()->GetAimSpellDescription(SpellsInventory::GetInstance()->GetEquippedAimSpellForTexture(index_)));
 }
 
 FString UPlayerUIController::GetLockedAimName(int index_)
@@ -281,14 +315,14 @@ FString UPlayerUIController::GetLockedAimDescription(int index_)
 }
 
 
-FString UPlayerUIController::GetBloodName(int index_)
+FString UPlayerUIController::GetEquippedBloodName(int index_)
 {
-	return(SpellsInventory::GetInstance()->GetBloodSpellName(SpellsInventory::GetInstance()->GetBloodSpellForTexture(index_)));
+	return(SpellsInventory::GetInstance()->GetBloodSpellName(SpellsInventory::GetInstance()->GetEquippedBloodSpellForTexture(index_)));
 }
 
-FString UPlayerUIController::GetBloodDescription(int index_)
+FString UPlayerUIController::GetEquippedBloodDescription(int index_)
 {
-	return(SpellsInventory::GetInstance()->GetBloodSpellDescription(SpellsInventory::GetInstance()->GetBloodSpellForTexture(index_)));
+	return(SpellsInventory::GetInstance()->GetBloodSpellDescription(SpellsInventory::GetInstance()->GetEquippedBloodSpellForTexture(index_)));
 }
 
 FString UPlayerUIController::GetLockedBloodName(int index_)
@@ -322,6 +356,15 @@ FString UPlayerUIController::GetLockedInnateDescription(int index_)
 	return(SpellsInventory::GetInstance()->GetInnateSpellDescription(static_cast<EInnateSpells>(index_)));
 }
 
+void UPlayerUIController::SetName(FString name_)
+{
+	highlightedSpellName = name_;
+}
+
+void UPlayerUIController::SetDescription(FString description_)
+{
+	highlightedSpellDescription = description_;
+}
 
 #pragma endregion
 
@@ -393,4 +436,157 @@ void UPlayerUIController::AddBP()
 	}
 }
 
+#pragma endregion
+
+
+#pragma region Dialogue
+
+FString UPlayerUIController::GetDialogue()
+{
+	return dialogue;
+}
+
+FString UPlayerUIController::GetName()
+{
+	return dialogueName;
+}
+
+void UPlayerUIController::AppendNextChar(TCHAR nchar_)
+{
+	if (!bInDialogue)
+		bInDialogue = true;
+	dialogue += nchar_;
+}
+
+void UPlayerUIController::ClearDialogue()
+{
+	dialogue = "";
+	dialogueName = "";
+}
+void UPlayerUIController::EndDialogue()
+{
+	dialogueName = "";
+	dialogue = "";
+	bInDialogue = false;
+}
+
+void UPlayerUIController::SetEntireDialogue(FString dialogue_)
+{
+	dialogue = dialogue_;
+}
+void UPlayerUIController::SetDialogueName(FString name)
+{
+	dialogueName = name;
+}
+#pragma endregion
+
+
+#pragma region Quests
+
+FString UPlayerUIController::GetQuestName(int index_)
+{
+	return QuestManager::GetInstance()->GetQuestName(index_);
+}
+
+FString UPlayerUIController::GetQuestDescription()
+{
+	return QuestManager::GetInstance()->GetQuestDescription(shownQuest);
+}
+
+FString UPlayerUIController::GetActiveQuestName()
+{
+	return QuestManager::GetInstance()->GetActiveQuestName();
+}
+
+void UPlayerUIController::SetActiveQuest()
+{
+	QuestManager::GetInstance()->SetActiveQuest(shownQuest);
+}
+
+bool UPlayerUIController::GetIsQuestCompleted(int index_)
+{
+	return QuestManager::GetInstance()->IsQuestCompleted(index_);
+}
+
+void UPlayerUIController::QuestMenu()
+{
+	bQuestMenu = !bQuestMenu;
+}
+
+void UPlayerUIController::SetShownQuest(int index_)
+{
+	shownQuest = index_;
+}
+bool UPlayerUIController::IsThisTheShownQuest()
+{
+	return shownQuest == QuestManager::GetInstance()->GetActiveQuestIndex();
+}
+bool UPlayerUIController::GetIsShownQuestCompleted()
+{
+	return GetIsQuestCompleted(shownQuest);
+}
+
+void UPlayerUIController::PlayCompletedQuestPrompt()
+{
+		playCompletedPrompt = true; //Enable the prompt
+		GetWorld()->GetTimerManager().SetTimer(timeToRemoveScreenPromptHandle, this, &UPlayerUIController::ResetPlayQuestPrompt, timeToRemoveScreenPrompt, false);
+}
+
+bool UPlayerUIController::GetCompletedQuestPrompt()
+{
+	return playCompletedPrompt;
+}
+
+void UPlayerUIController::PlayNewQuestPrompt()
+{
+	playNewPrompt = true; //Enable the prompt
+	GetWorld()->GetTimerManager().SetTimer(timeToRemoveScreenPromptHandle, this, &UPlayerUIController::ResetPlayQuestPrompt, timeToRemoveScreenPrompt, false);
+}
+
+bool UPlayerUIController::GetNewQuestPrompt()
+{
+	return playNewPrompt;
+}
+
+void  UPlayerUIController::PlayUpdatedQuestPrompt()
+{
+	playUpdatedPrompt = true;
+	GetWorld()->GetTimerManager().SetTimer(timeToRemoveScreenPromptHandle, this, &UPlayerUIController::ResetPlayQuestPrompt, timeToRemoveScreenPrompt, false);
+}
+
+bool  UPlayerUIController::GetUpdatedQuestPrompt()
+{
+	return playUpdatedPrompt;
+}
+
+void UPlayerUIController::ResetPlayQuestPrompt()
+{
+	playCompletedPrompt = false;
+	playNewPrompt = false;
+	playUpdatedPrompt = false;
+}
+#pragma endregion
+
+
+void UPlayerUIController::GoBack()
+{
+	bSkillTreeMenuIsShown = false;
+	bQuestMenu = false;
+}
+
+#pragma region LevelUp
+void UPlayerUIController::PlayLevelUpPrompt()
+{
+	bHasLeveledUp = true;
+	GetWorld()->GetTimerManager().SetTimer(timeToRemoveLevelUpPromptHandle, this, &UPlayerUIController::ResetHasLeveledUp, timeToRemoveScreenPrompt, false);
+
+}
+bool UPlayerUIController::GetHasLeveledUp()
+{
+	return bHasLeveledUp;
+}
+void UPlayerUIController::ResetHasLeveledUp()
+{
+	bHasLeveledUp = false;
+}
 #pragma endregion

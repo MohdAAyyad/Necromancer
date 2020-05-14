@@ -50,6 +50,7 @@ public:
 	virtual void OnSeePlayer(APawn* pawn_) override;
 	virtual void Tick(float DeltaTime) override;
 	void EndSpecial();
+	void distactingZombieIsDead() override;
 
 
 private :

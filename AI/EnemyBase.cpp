@@ -23,10 +23,12 @@ AEnemyBase::AEnemyBase()
 	statusEffectDuration = 0.0f;
 	enemyForZombie = nullptr;
 	zombifyDuration = 30.0f;
-	patrolRadius = 200.0f;
 	player = nullptr;
 	enemyForZombie = nullptr;
 	permenantTarget = nullptr;
+	distractingZombie = nullptr;
+	nextPatrolStopIndex = 0;
+	prevPatrolStopIndex = -1;
 
 }
 
@@ -51,7 +53,6 @@ void AEnemyBase::OnSeePlayer(APawn* pawn_)
 	{
 		if (!bDead || bZombie)
 		{
-			//GLog->Log("Saw player");
 			aiController->SetSeenTarget(pawn_);
 		}
 	}
@@ -61,13 +62,16 @@ void AEnemyBase::SpawnBloodPool()
 {
 	if (!bZombie)
 	{
+		FVector spawnLoc = GetMesh()->GetBoneLocation("Hips", EBoneSpaces::WorldSpace);
+		spawnLoc.Z += 5000.0f; //The blood pool will always spawn on top of the first object it finds. Sometimes the enemy dies on a very low ground that when they die, the blood pool is spawned below the ground causing it to be deleted
+
 		if (!bTypeOfBPToSpawn) //Untainted false, tainted true
 		{
 			if (bloodPools[0])
 			{
 				//Summon blood pool starting at the torso
 				//Code should run after death animation is run
-				GetWorld()->SpawnActor<ABloodPool>(bloodPools[0], GetMesh()->GetBoneLocation("Hips", EBoneSpaces::WorldSpace), GetActorRotation());
+				GetWorld()->SpawnActor<ABloodPool>(bloodPools[0], spawnLoc, GetActorRotation());
 			}
 		}
 		else
@@ -76,7 +80,7 @@ void AEnemyBase::SpawnBloodPool()
 			{
 				//Summon blood pool starting at the torso
 				//Code should run after death animation is run
-				GetWorld()->SpawnActor<ABloodPool>(bloodPools[1], GetMesh()->GetBoneLocation("Hips", EBoneSpaces::WorldSpace), GetActorRotation());
+				GetWorld()->SpawnActor<ABloodPool>(bloodPools[1], spawnLoc, GetActorRotation());
 			}
 		}
 	}
@@ -84,6 +88,9 @@ void AEnemyBase::SpawnBloodPool()
 	{
 		//When the zombie dies, destroy the body
 		bZombie = false;
+		AEnemyBase* en = Cast<AEnemyBase>(permenantTarget);
+		if (en)
+			en->distactingZombieIsDead();
 		Destroy();
 	}
 }
@@ -145,58 +152,87 @@ void AEnemyBase::AddEXP()
 
 void AEnemyBase::WhoToLookFor(APawn* pawn_)
 {
-	if (!player && !bZombie) //If we have yet to see the player, and we're not a zombie, make sure you look for the player
+	if (!distractingZombie) //If we do not have a reference to a distracting zombie, then operate normally
 	{
-		//This is to prevent the enemy from going after other enemies when it's not a zombie
-		player = Cast<ANecromancerCharacter>(pawn_);
-		if (player)
+		if (!player && !bZombie) //If we have yet to see the player, and we're not a zombie, make sure you look for the player
 		{
-			AEnemyBase::OnSeePlayer(player);
-		}
-	}
-	else if (bZombie) //Otherwise look for other enemies
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("Zombie seen this %s"), *pawn_->GetName());
-		if (pawn_ != player)
-		{
-			enemyForZombie = Cast<AEnemyBase>(pawn_);
-			if (enemyForZombie)
+			//This is to prevent the enemy from going after other enemies when it's not a zombie
+			player = Cast<ANecromancerCharacter>(pawn_);
+			if (player)
 			{
-				//UE_LOG(LogTemp,Warning,TEXT("Zombie has seen enemy"))
-				if (!enemyForZombie->bZombie && !enemyForZombie->IsDead()) //Make sure you don't fight a fellow zombie
+				AEnemyBase::OnSeePlayer(player);
+			}
+		}
+		else if (bZombie) //Otherwise look for other enemies
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("Zombie seen this %s"), *pawn_->GetName());
+			if (pawn_ != player)
+			{
+				enemyForZombie = Cast<AEnemyBase>(pawn_);
+				if (enemyForZombie)
 				{
-					//UE_LOG(LogTemp, Warning, TEXT("Enemy is not zombie"))
-					AEnemyBase::OnSeePlayer(pawn_);
-					permenantTarget = pawn_;
+					//UE_LOG(LogTemp,Warning,TEXT("Zombie has seen enemy"))
+					if (!enemyForZombie->bZombie && !enemyForZombie->IsDead()) //Make sure you don't fight a fellow zombie
+					{
+						//UE_LOG(LogTemp, Warning, TEXT("Enemy is not zombie"))
+						AEnemyBase::OnSeePlayer(pawn_);
+					}
 				}
 			}
 		}
-	}
-	else if (player)
-	{
-		AEnemyBase::OnSeePlayer(player);
+		else if (player)
+		{
+			AEnemyBase::OnSeePlayer(player);
+		}
 	}
 }
 
 void AEnemyBase::Patrol()
 {
 	//Assumption: Enemy has not seen player yet. Enemy moves within a certain radius until player is seen
-	if (!hasPickedApatrolDestination)
-	{
-		moveLoc.X = GetActorLocation().X + FMath::RandRange(-patrolRadius, patrolRadius);
-		moveLoc.Y = GetActorLocation().Y + FMath::RandRange(-patrolRadius, patrolRadius);
-		moveLoc.Z = GetActorLocation().Z;
-		if (aiController)
-			aiController->SetNewLocation(moveLoc);
 
-		hasPickedApatrolDestination = true;
-	}
-	else
+	if (patrolStops.Num() > 0)
 	{
-		if ((moveLoc - GetActorLocation()).Size() <= 1.0f) //Are you at the patrol destination yet?
+		//UE_LOG(LogTemp, Warning, TEXT("Distance to %d = %f"), nextPatrolStopIndex, (moveLoc - GetActorLocation()).Size());
+		if (nextPatrolStopIndex != prevPatrolStopIndex) //Next point has already been decided, move towards it
 		{
-			hasPickedApatrolDestination = false;
-			//A delay is added at the behavior tree level
+			if(patrolStops[nextPatrolStopIndex])
+				moveLoc = patrolStops[nextPatrolStopIndex]->GetActorLocation();
+			prevPatrolStopIndex = nextPatrolStopIndex;
+
+			if (aiController)
+				aiController->SetNewLocation(moveLoc);
 		}
+		else if ((moveLoc - GetActorLocation()).Size() <= 120.0f) //Are we there yet?
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("Reached Patrol Stop"));
+			nextPatrolStopIndex++;
+			if (nextPatrolStopIndex >= patrolStops.Num()) //If we've moved through all points, reset
+			{
+				nextPatrolStopIndex = 0;
+				prevPatrolStopIndex = -1;
+			}
+		}
+
 	}
+
+}
+
+void AEnemyBase::TakeSpellDamageFromZombie(APawn* zombie_, float damage_)
+{
+	//Update the distracting zombie ptr
+	distractingZombie = zombie_;	
+	permenantTarget = distractingZombie;
+	if (aiController) //Update the controller's target
+		aiController->SetSeenTarget(zombie_);
+	TakeSpellDamage(damage_);
+}
+
+void AEnemyBase::distactingZombieIsDead() //Called by the distracting zombie to make sure the enemy attacks the player again
+{
+	UE_LOG(LogTemp, Warning, TEXT("Distracting Zombie Is Dead has been called"));
+	distractingZombie = nullptr;
+	permenantTarget = player;
+	if (aiController)
+		aiController->SetSeenTarget(player);
 }

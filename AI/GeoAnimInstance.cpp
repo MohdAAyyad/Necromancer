@@ -8,6 +8,7 @@ UGeoAnimInstance::UGeoAnimInstance()
 	geomancer = nullptr;
 	forwardSpeed = 0.0f;
 	bCast0 = false;
+	bCast1 = false;
 	bSpecial0 = false;
 	bReload = false;
 	bDeath = false;
