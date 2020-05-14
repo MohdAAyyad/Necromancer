@@ -1,16 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
-//TODO
-/*
-* Create an animation instance
-* Create a skeleton class
-* Create a behvavior tree for summon base :Move-Attack-Reload-Die
-* Fill the function related to the animations
-* Summon the skeleton
-*/
-
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -54,6 +43,7 @@ public:
 	virtual void EnableAttackHitBox(); //Called from animation
 	virtual void DisableAttackHitBox(); //Called from animation
 	virtual void LeaveScene(); //Called from animation after Death
+	virtual void SummonTakeDamage(float damage_);
 
 protected:
 
@@ -102,7 +92,6 @@ protected:
 
 	UFUNCTION()
 		virtual void OnSeeEnemy(APawn* pawn_);
-	virtual void TakeDamage(float damage_);
 	virtual void Attack();
 	virtual void EndReload();
 	virtual void Die();

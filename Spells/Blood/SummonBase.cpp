@@ -78,7 +78,7 @@ void ASummonBase::OnSeeEnemy(APawn* pawn_)
 	}
 }
 
-void ASummonBase::TakeDamage(float damage_)
+void ASummonBase::SummonTakeDamage(float damage_)
 {
 	hp -= damage_;
 	if (hp <= 0.5f)
@@ -159,7 +159,7 @@ void ASummonBase::OnAttackBoxOverlap(UPrimitiveComponent* overlappedComponent_,
 		{
 			if (!enemy->IsDead() && !enemy->bZombie)
 			{
-				enemy->TakeSpellDamage(baseDamage * damageModifier);
+				enemy->TakeSpellDamageFromZombie(this, baseDamage * damageModifier);
 				if (impact)
 					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f));
 
@@ -171,6 +171,8 @@ void ASummonBase::OnAttackBoxOverlap(UPrimitiveComponent* overlappedComponent_,
 void ASummonBase::Die()
 {
 	bActive = false;
+	if (target)
+		target->distactingZombieIsDead();
 	if (animInstance)
 	{
 		animInstance->Death();

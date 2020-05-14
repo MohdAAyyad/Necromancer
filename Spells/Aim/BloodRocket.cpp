@@ -10,7 +10,7 @@ ABloodRocket::ABloodRocket(): AAimProjectile()
 	explosionDamage = 50.0f;
 	damage = 10.0f;
 	InitialLifeSpan = 5.0f;
-	destroyDelay = 0.2f;
+	destroyDelay = 0.015f;
 
 	explosionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Explosion Sphere"));
 	explosionSphere->SetCollisionProfileName("OverlapAllDynamic");
@@ -49,6 +49,8 @@ void ABloodRocket::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 		{
 			if (!enemy->IsDead() && !enemy->bZombie)
 			{
+				if (playerController && cameraShake)
+					playerController->PlayerCameraManager->PlayCameraShake(cameraShake, 0.5f);
 				enemy->TakeSpellDamage(damage);
 				sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			}

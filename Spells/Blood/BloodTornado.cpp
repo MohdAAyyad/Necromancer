@@ -38,6 +38,8 @@ void ABloodTornado::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 
 		if (enemy && !enemy->IsDead() && !enemy->bZombie)
 		{
+			if (playerController && cameraShake)
+				playerController->PlayerCameraManager->PlayCameraShake(cameraShake, 0.5f);
 			enemy->TakeSpellDamage(damage);
 		}
 		else

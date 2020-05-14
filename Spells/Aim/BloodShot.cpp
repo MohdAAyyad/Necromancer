@@ -27,6 +27,8 @@ void ABloodShot::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 		{
 			if (!enemy->IsDead() && !enemy->bZombie)
 			{
+				if (playerController && cameraShake)
+					playerController->PlayerCameraManager->PlayCameraShake(cameraShake, 0.5f);
 				enemy->TakeSpellDamage(damage);
 				sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			}

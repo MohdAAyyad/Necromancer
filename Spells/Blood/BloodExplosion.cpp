@@ -31,6 +31,8 @@ void ABloodExplosion::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			}
 			else if (!enemy->IsDead())
 			{
+				if (playerController && cameraShake)
+					playerController->PlayerCameraManager->PlayCameraShake(cameraShake, 0.5f);
 				enemy->TakeSpellDamage(damage);
 			}
 
