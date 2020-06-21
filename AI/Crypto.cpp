@@ -73,17 +73,15 @@ ACrypto::ACrypto():AGeomancer()
 	absorbSpeed = 300.0f;
 	//bHasAlreadyBeenZombified = false;
 	zombifyDuration = 60.0f;
+
+	audioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("Audio Component"));
+	audioComponent->SetupAttachment(RootComponent);
 }
 
 void ACrypto::BeginPlay()
 {
-	AEnemyBase::BeginPlay();
-	animInstance = Cast<UCryptoAnimInstance>(GetMesh()->GetAnimInstance());
 
-	if (sense)
-	{
-		sense->OnSeePawn.AddDynamic(this, &ACrypto::OnSeePlayer);
-	}
+	animInstance = Cast<UCryptoAnimInstance>(GetMesh()->GetAnimInstance());
 
 	if (outerSphere)
 	{
@@ -98,6 +96,11 @@ void ACrypto::BeginPlay()
 
 	if (absorbIndicator)
 		absorbIndicator->DeactivateSystem();
+
+	if (audioComponent)
+		audioComponent->Sound = meleeImpactSound;
+
+	AEnemyBase::BeginPlay();
 }
 void ACrypto::Tick(float DeltaTime)
 {
@@ -111,29 +114,16 @@ void ACrypto::Tick(float DeltaTime)
 			animInstance->NextCast();
 	}
 }
-void ACrypto::OnSeePlayer(APawn* pawn_)
-{
-	if (!bDead || bZombie)
-	{
-		WhoToLookFor(pawn_);
 
-		if (!distractingZombie)
-		{
-			if (!permenantTarget && !bZombie) //If we're a zombie, permenant target will be filled from inside who to look for
-				permenantTarget = pawn_;
-			else if (!permenantTarget && bZombie)
-				permenantTarget = enemyForZombie;
-		}
-	}
-}
 
 void ACrypto::TakeRegularDamage(float damage_)
 {
 	if (!bDead || bZombie)
 	{
-		if(currentState != ECryptoState::ABSORBING)
+		if (currentState != ECryptoState::ABSORBING)
+		{
 			hp -= damage_;
-		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
+		}
 
 		if (hp <= 0.5f && !bZombie)
 		{
@@ -149,7 +139,7 @@ void ACrypto::TakeRegularDamage(float damage_)
 			if (animInstance && currentState!=ECryptoState::ATTACKING && currentState != ECryptoState::ABSORBING) //Don't play hit animation when attacking
 				animInstance->SetHit();
 
-			if (hp <= 50.0f && numberOfPortalsToSummon == 5)
+			if (hp <= 0.5f* maxHP && numberOfPortalsToSummon == 5)
 			{
 				numberOfPortalsToSummon += 5;
 				bHasChosenSpell = false;
@@ -161,7 +151,13 @@ void ACrypto::TakeRegularDamage(float damage_)
 
 	if (!aiController->GetPlayer() && !bZombie)
 	{
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		if (aiController)
+		{
+			if (!bDead || bZombie)
+			{
+				aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+			}
+		}
 	}
 }
 void ACrypto::TakeSpellDamage(float damage_)
@@ -169,8 +165,9 @@ void ACrypto::TakeSpellDamage(float damage_)
 	if (!bDead || bZombie)
 	{
 		if (currentState != ECryptoState::ABSORBING)
+		{
 			hp -= damage_;
-		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
+		}
 
 		if (hp <= 0.5f)
 		{
@@ -194,7 +191,13 @@ void ACrypto::TakeSpellDamage(float damage_)
 
 	if (!aiController->GetPlayer() && !bZombie)
 	{
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		if (aiController)
+		{
+			if (!bDead || bZombie)
+			{
+				aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+			}
+		}
 	}
 }
 void ACrypto::TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_)
@@ -203,8 +206,9 @@ void ACrypto::TakeSpellDamage(float damage_, EStatusEffects effect_, float durat
 	if (!bDead || bZombie)
 	{
 		if (currentState != ECryptoState::ABSORBING)
+		{
 			hp -= damage_;
-		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
+		}
 
 		if (hp <= 0.5f)
 		{
@@ -236,7 +240,13 @@ void ACrypto::TakeSpellDamage(float damage_, EStatusEffects effect_, float durat
 
 	if (!aiController->GetPlayer() && !bZombie)
 	{
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		if (aiController)
+		{
+			if (!bDead || bZombie)
+			{
+				aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+			}
+		}
 	}
 }
 void ACrypto::Attack()
@@ -251,8 +261,10 @@ void ACrypto::Attack()
 				{
 					if (portalLocations[numberOfPortalsSofar]) //Just being cautious 
 					{
+						FActorSpawnParameters spawnParams = FActorSpawnParameters();
+						spawnParams.bNoFail = true;
 						spawnedPortals.Push(GetWorld()->SpawnActor<AEnemyProjectile>
-							(portalProjectile, portalLocations[numberOfPortalsSofar]->GetComponentLocation(), portalLocations[numberOfPortalsSofar]->GetComponentRotation()));
+							(portalProjectile, portalLocations[numberOfPortalsSofar]->GetComponentLocation(), portalLocations[numberOfPortalsSofar]->GetComponentRotation(), spawnParams));
 
 						numberOfPortalsSofar++;
 					}
@@ -273,8 +285,10 @@ void ACrypto::Attack()
 					//Spawn the projectiles and add them to the vector
 					if (portalLocations[i] && projectiles[i]) //Just being cautious 
 					{
+						FActorSpawnParameters spawnParams = FActorSpawnParameters();
+						spawnParams.bNoFail = true;
 						actualProjectiles.Push(GetWorld()->SpawnActor<AEnemyProjectile>
-							(projectiles[i], spawnedPortals[i]->GetActorLocation(), rotation));
+							(projectiles[i], spawnedPortals[i]->GetActorLocation(), rotation, spawnParams));
 						actualProjectiles[i]->SetParent(this);
 						if (spawnedPortals[i])
 							spawnedPortals[i]->SetActorRotation(portalLocations[i]->GetComponentRotation());
@@ -329,7 +343,8 @@ void ACrypto::AbsorbMode()
 			{
 				animInstance->NextSpecial();
 			}
-
+			if (audioComponent)
+				audioComponent->Play();
 			//Activate the absorption spheres		
 			ActivateSpheres();
 			if (absorbIndicator)
@@ -346,6 +361,8 @@ void ACrypto::AbsorbMode()
 				animInstance->ResetSpecial();
 			if (absorbIndicator)
 				absorbIndicator->DeactivateSystem();
+			if (audioComponent)
+				audioComponent->FadeOut(0.3f, 0.0f);
 		}
 }
 
@@ -377,7 +394,6 @@ void ACrypto::EndAbsorb()
 void ACrypto::Absorb(float damage_) //Called from the absorption sphere
 {
 	totalDamageAbsorbed += damage_;
-	UE_LOG(LogTemp, Error, TEXT("Total Damage has become %f"),totalDamageAbsorbed);
 }
 bool ACrypto::CalculateAbsorbChance()
 {
@@ -390,46 +406,29 @@ bool ACrypto::CalculateAbsorbChance()
 }
 void ACrypto::ActivateZombie()
 {
-	if (aiController)
-	{
-		aiController->ResetDead();
-	}
+	AEnemyBase::ActivateZombie();
 	currentState = ECryptoState::IDLE;
-	sense->bOnlySensePlayers = false;
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetCapsuleComponent()->SetCollisionProfileName("Zombie");
+
 }
 void ACrypto::Death()
 {
+	AEnemyBase::Death();
 	if (animInstance)
 		animInstance->Death();
 
-	bDead = true;
-	aiController->SetSeenTarget(nullptr);
 	currentState = ECryptoState::DEATH;
-
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	if (!hasAddedEXP)
-		AddEXP();
-
-
-	enemyForZombie = nullptr;
-	permenantTarget = nullptr;
-	distractingZombie = nullptr;
 }
 void ACrypto::Zombify()
 {
-	bZombie = true;
+	AEnemyBase::Zombify();
 	if (animInstance)
 		animInstance->SetZombify();
 	GetWorld()->GetTimerManager().SetTimer(zombifyTimerHandle, this, &ACrypto::EndZombify, zombifyDuration, false);
-	hp = 70.0f;
-	Super::OnSeePlayer(nullptr);
 
 }
 void ACrypto::EndZombify()
 {
+	AEnemyBase::EndZombify();
 	currentState = ECryptoState::DEATH;
 	if (animInstance)
 		animInstance->Death();
@@ -458,6 +457,7 @@ void ACrypto::OuterSphereOnOverlap(UPrimitiveComponent* overlappedComponent_,
 		if (proj)
 		{
 			//UE_LOG(LogTemp, Error, TEXT("Caught a projectile %s"), *proj->GetName());
+			proj->bBeingAbsorbed = true;
 			FVector directionToInnerSphere = innerSphere->GetComponentLocation() - proj->GetActorLocation();
 			directionToInnerSphere.Normalize();
 			proj->UpdateVelocity(directionToInnerSphere*absorbSpeed);
@@ -535,14 +535,6 @@ void ACrypto::SpawnBloodPool() //Overriding it as the Destroy should be called a
 			}
 		}
 	}
-	else
-	{
-		//When the zombie dies, destroy the body
-		bZombie = false;
-		AEnemyBase* en = Cast<AEnemyBase>(permenantTarget);
-		if (en)
-			en->distactingZombieIsDead();
-	}
 	ClearAndDestroy();
 }
 
@@ -559,7 +551,7 @@ void ACrypto::ClearAndDestroy()
 	}
 
 	//Finish attacking if we have already started
-	if (actualProjectiles.Num() > 0)
+	/*if (actualProjectiles.Num() > 0)
 	{
 		for (int i = 0; i < actualProjectiles.Num(); i++)
 		{
@@ -572,6 +564,7 @@ void ACrypto::ClearAndDestroy()
 		}
 		actualProjectiles.Empty(); //Clear the array
 	}
+	*/
 
 	//Finish the death function
 	numberOfPortalsSofar = 0;

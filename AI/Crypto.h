@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Geomancer.h"
+#include "Components/AudioComponent.h"
 #include "Crypto.generated.h"
 
 
@@ -30,7 +31,6 @@ class NECROMANCER_API ACrypto : public AGeomancer
 public:
 	void ActivateZombie() override;
 
-	void OnSeePlayer(APawn* pawn_) override;
 	void TakeRegularDamage(float damage_) override;
 	void TakeSpellDamage(float damage_) override;
 	void TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_) override;
@@ -59,6 +59,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Absorb")
 		float absorbSpeed; //How fast do projectiles get absorbed
+
+	UPROPERTY(EditAnywhere, Category = "AudioComponent")
+		UAudioComponent* audioComponent;
 
 	int absorbChance; //Calculates the chance to activate attack absorbtion
 	float totalDamageAbsorbed;

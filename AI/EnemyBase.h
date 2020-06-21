@@ -12,6 +12,7 @@
 #include "StatusEffects.h"
 #include "TimerManager.h"
 #include "../EXPManager.h"
+#include "Components/SphereComponent.h"
 #include "EnemyBase.generated.h"
 
 UCLASS()
@@ -92,6 +93,11 @@ protected:
 
 	APawn* permenantTarget; //Doesn't turn to nullptr when the enemy loses sight of the target. Used when casting spells that do not care about cover
 	APawn* distractingZombie; // Used to store a reference to a zombie that attacks the enemy. The reference is used to change the target of the enemy distracting it away from the player.
+
+	TArray<AEnemyBase*> enemiesZombieIsTargeting;
+
+	UFUNCTION(BlueprintCallable, Category = Hud)
+		float GetHPPercent() { return hp / maxHP; };
 public:
 	virtual void TakeRegularDamage(float damage_) {};
 	virtual void TakeSpellDamage(float damage_) {};
@@ -109,12 +115,12 @@ public:
 
 	virtual float GetDistanceToPlayer();
 	virtual bool IsDead() { return bDead; };
-	virtual void Zombify() {};
-	virtual void EndZombify() {};
-	virtual void Death() {};
-	virtual void ActivateZombie() {};
+	virtual void Zombify();
+	virtual void EndZombify();
+	virtual void Death();
+	virtual void ActivateZombie();
 
-	UPROPERTY(EditAnywhere, Category = Animation)
+	UPROPERTY(EditAnywhere, Category = Animation, BlueprintReadOnly)
 		bool bZombie = false;
 
 	void DelayedExplosion();
@@ -123,4 +129,10 @@ public:
 
 	virtual bool IsEnemyAbsorbingAttack() { return false; }; //Overriden by Crypto and returns true when in absorb mode
 
+	void PlayerHasBeenDetectedByDetector(class ANecromancerCharacter* player_);
+
+	class AEnemyManager* enemyManagerRef;
+	virtual void SetEnemyManagerRef(class AEnemyManager* ref_);
+	virtual void ZombieTargetIsDead(AEnemyBase* target_); //Called from enemy manager to ask the zombie if it needs a new target
+	virtual void AddZombieTargetByProjectile(AEnemyBase* target_); //If the projectile misses the intended target, the one it hits will have this zombie as a distracting zombie reference. It needs to know that it's dead.
 };

@@ -23,6 +23,11 @@ public:
 	virtual inline void SetDamage(float amount_) override { damage = amount_; };
 	virtual void SetHoming(APawn* target);
 
+	UPROPERTY(EditAnywhere, Category = Destroy)
+		bool bCanPlayerDestroyThisProjectile;
+
+	void DestroyProjectileByPlayer();
+
 protected:
 
 	class AEnemyBase* parent;

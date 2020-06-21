@@ -41,6 +41,10 @@ void AGeomancerSpecial::EnableSecondCollision()
 
 	if (secondParticles)
 		secondParticles->ActivateSystem(true);
+
+	if (impactSound)
+		UGameplayStatics::SpawnSoundAtLocation(GetWorld(), impactSound, GetActorLocation(), FRotator::ZeroRotator, impactVolume, impactPitch, 0.0f, impactSound->AttenuationSettings);
+
 }
 
 void AGeomancerSpecial::OnOverlap(UPrimitiveComponent* overlappedComponent_,
@@ -58,28 +62,73 @@ void AGeomancerSpecial::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 		ANecromancerCharacter* player = Cast<ANecromancerCharacter>(otherActor_);
 		if (player)
 		{
-			player->TakeDamage(damage);
+			player->PlayerTakeDamage(damage);
 			sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			UE_LOG(LogTemp, Warning, TEXT("UMMMMMMMMMM"));
 		}
 		else
 		{
 			AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_); //This mainly for zombies
 			if (enemy)
 			{
-				if (!enemy->bZombie && !enemy->IsDead())
+				if (parent)
 				{
-					enemy->TakeSpellDamage(damage);
-					sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+					if (parent->bZombie) //If the parent is a zombie, then make sure it's attacking non-zombie enemies and updating the distracting enemy reference
+					{
+						if (!enemy->bZombie && !enemy->IsDead() && enemy != parent && !bBeingAbsorbed)
+						{
+							enemy->TakeSpellDamageFromZombie(parent, damage);
+							Destroy();
+						}
+					}
+					else //Otherwise, you're an enemy attacking a zombie
+					{
+						if (enemy->bZombie && enemy != parent && !bBeingAbsorbed)
+						{
+							enemy->TakeRegularDamage(damage);
+							Destroy();
+						}
+					}
 				}
 			}
 			else
 			{
-				ABloodWall* wall = Cast<ABloodWall>(otherActor_);
-				if (wall)
+				ASummonBase* summon = Cast<ASummonBase>(otherActor_);
+				if (summon)
 				{
-					wall->TakeDamage(damage);
-					sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+					summon->SummonTakeDamage(damage);
+					Destroy();
+				}
+				else
+				{
+					ABloodWall* wall = Cast<ABloodWall>(otherActor_);
+					if (wall)
+					{
+						wall->PropTakeDamage(damage);
+						Destroy();
+					}
+					else
+					{
+						AAimProjectile* proj = Cast<AAimProjectile>(otherActor_);
+						if (proj)
+						{
+							if (bCanPlayerDestroyThisProjectile)
+								Destroy();
+						}
+						else
+						{
+							ADestructibleProp* prop = Cast<ADestructibleProp>(otherActor_);
+							if (prop)
+							{
+								prop->PropTakeDamage(damage);
+								Destroy();
+							}
+							else
+							{
+								if (!bBeingAbsorbed)
+									Destroy();
+							}
+						}
+					}
 				}
 			}
 		}

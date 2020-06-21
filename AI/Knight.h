@@ -7,6 +7,7 @@
 #include "Components/BoxComponent.h"
 #include "EnemyProjectile.h"
 #include "Engine/Classes/Particles/ParticleSystemComponent.h"
+#include "Sound/SoundBase.h"
 #include "Knight.generated.h"
 
 /**
@@ -85,6 +86,8 @@ private :
 	UPROPERTY(EditDefaultsOnly, Category = "Casting")
 		TSubclassOf<AEnemyProjectile> castProjectile;
 
+	void KnightAttack();
+
 protected:
 
 	//Strafe
@@ -98,7 +101,14 @@ protected:
 
 	float reloadTime;
 	FTimerHandle attackTimerHandle;
-
+	UPROPERTY(EditAnywhere, Category = "Melee Impact")
+		UParticleSystem* meleeImpact;
+	UPROPERTY(EditAnywhere, Category = "Melee Impact")
+		USoundBase* meleeImpactSound;
+	UPROPERTY(EditAnywhere, Category = "Melee Impact")
+		float meleeImpactVolume;
+	UPROPERTY(EditAnywhere, Category = "Melee Impact")
+		float meleeImpactPitch;
 
 	//Cast
 	float acceptableCastDistance; //More than this, calculate cast chance

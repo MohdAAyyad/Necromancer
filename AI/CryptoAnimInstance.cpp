@@ -73,22 +73,23 @@ void UCryptoAnimInstance::ResetCast()
 	bCast0 = false;
 	bSpecial0 = false;
 	bReload = true;
-	UE_LOG(LogTemp, Warning, TEXT("Reset Cast has been called"));
+
 }
 void UCryptoAnimInstance::ResetReload()
 {
 	bReload = false;
-	UE_LOG(LogTemp, Warning, TEXT("Reset Reload has been called"));
+
 }
 void UCryptoAnimInstance::SetHit()
 {
-	bHit = true;
-	UE_LOG(LogTemp, Warning, TEXT("Set hit has been called"));
+	if (!bHit)
+		bHit = true;
+	
 }
 void UCryptoAnimInstance::ResetHit()
 {
 	bHit = false;
-	UE_LOG(LogTemp, Warning, TEXT("Reset hit has been called"));
+
 }
 void UCryptoAnimInstance::SetZombify()
 {

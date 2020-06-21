@@ -81,7 +81,8 @@ void UGeoAnimInstance::ResetReload()
 }
 void UGeoAnimInstance::SetHit()
 {
-	bHit = true;
+	if (!bHit)
+		bHit = true;
 }
 void UGeoAnimInstance::ResetHit()
 {

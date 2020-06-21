@@ -32,7 +32,6 @@ class NECROMANCER_API AGeomancer : public AKnight
 
 public:
 	AGeomancer();
-	virtual void OnSeePlayer(APawn* pawn_) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void TakeRegularDamage(float damage_) override;
 	virtual void TakeSpellDamage(float damage_) override;

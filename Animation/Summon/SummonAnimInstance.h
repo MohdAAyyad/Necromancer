@@ -54,8 +54,4 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void Death();
-
-
-	UFUNCTION(BlueprintCallable)
-		void DestroySummon();
 };

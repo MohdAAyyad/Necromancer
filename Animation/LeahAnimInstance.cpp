@@ -12,6 +12,7 @@ ULeahAnimInstance::ULeahAnimInstance()
 		aimLeftSpeed =
 		aimBackSpeed = 0.0f;
 		bHit = false;
+		bDead = false;
 
 		baimMode = false;
 		banimAimShoot = false;
@@ -83,4 +84,10 @@ void ULeahAnimInstance::SpawnWall()
 		necro->SpawnWall();
 		necro->bCastingSpell = false;
 	}
+}
+
+void ULeahAnimInstance::Death()
+{
+	if (necro)
+		necro->Death();
 }

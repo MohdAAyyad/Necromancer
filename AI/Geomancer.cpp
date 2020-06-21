@@ -13,7 +13,7 @@
 
 AGeomancer::AGeomancer() :AKnight()
 {
-	acceptableAttackDistance = 1000.0f;
+	acceptableAttackDistance = 2500.0f;
 	hp = 150.0f;
 	reloadTime = 1.0f;
 	animInstance = nullptr;
@@ -32,12 +32,8 @@ AGeomancer::AGeomancer() :AKnight()
 
 void AGeomancer::BeginPlay()
 {
-	AEnemyBase::BeginPlay();
+
 	animInstance = Cast<UGeoAnimInstance>(GetMesh()->GetAnimInstance());
-	if (sense)
-	{
-		sense->OnSeePawn.AddDynamic(this, &AGeomancer::OnSeePlayer);		
-	}
 
 	if (currentState == EGeomancerState::SITTING)
 	{
@@ -50,6 +46,8 @@ void AGeomancer::BeginPlay()
 
 	if (evadeParticles)
 		evadeParticles->DeactivateSystem();
+
+	AEnemyBase::BeginPlay();
 }
 void AGeomancer::Tick(float DeltaTime)
 {
@@ -105,7 +103,6 @@ void AGeomancer::Tick(float DeltaTime)
 				//evadeDestination.Z -= 550.0f;
 				evadeDestination.Y -= correctionDistance;
 
-				//Always teleport behind the player
 				//evadeDestination = permenantTarget->GetActorLocation() - permenantTarget->GetActorForwardVector()*evadeRange;
 				bhasChosenEvadeDestination = true;
 			}
@@ -138,31 +135,34 @@ void AGeomancer::Tick(float DeltaTime)
 		}
 		else if (currentState == EGeomancerState::PATROLLING || currentState == EGeomancerState::TOPLAYER || bZombie) //If you find the player while patrolling, or if you see an enemy while a zombie
 		{
-			//UE_LOG(LogTemp, Error, TEXT("Inside Patrolling"));
-			float distance = GetDistanceToPlayer();
+			if (permenantTarget != nullptr)
+			{
+				//UE_LOG(LogTemp, Error, TEXT("Inside Patrolling"));
+				float distance = GetDistanceToPlayer();
 
-			if (distance > acceptableAttackDistance) //If the target is far, go to acceptable attack distance
-			{
-				//UE_LOG(LogTemp, Error, TEXT("To player dude"));
-				currentState = EGeomancerState::TOPLAYER;
-				if (aiController)
+				if (distance > acceptableAttackDistance) //If the target is far, go to acceptable attack distance
 				{
-					aiController->SetToPlayer(true);
-					aiController->SetCast(false);
-				}
-			}
-			else //If the player is close enough for you to attack, then attack
-			{
-				if (!bHasChosenSpell)
-				{
-					currentState = EGeomancerState::ATTACKING;
+					//UE_LOG(LogTemp, Error, TEXT("To player dude"));
+					currentState = EGeomancerState::TOPLAYER;
 					if (aiController)
 					{
-						aiController->SetCast(true);
-						aiController->SetToPlayer(false);
+						aiController->SetToPlayer(true);
+						aiController->SetCast(false);
 					}
-					Attack();
-					bHasChosenSpell = true;
+				}
+				else //If the player is close enough for you to attack, then attack
+				{
+					if (!bHasChosenSpell)
+					{
+						currentState = EGeomancerState::ATTACKING;
+						if (aiController)
+						{
+							aiController->SetCast(true);
+							aiController->SetToPlayer(false);
+						}
+						Attack();
+						bHasChosenSpell = true;
+					}
 				}
 			}
 		}
@@ -170,22 +170,6 @@ void AGeomancer::Tick(float DeltaTime)
 	else if (currentState == EGeomancerState::PATROLLING) //Have not seen the target at all, and is patrolling
 	{
 		Patrol();
-	}
-}
-void AGeomancer::OnSeePlayer(APawn* pawn_)
-{
-	//UE_LOG(LogTemp, Warning, TEXT("Alive seen this %s"), *pawn_->GetName());
-	if (!bDead || bZombie)
-	{
-		WhoToLookFor(pawn_); //Look for player or enemy?
-
-		if (!distractingZombie)
-		{
-			if (!permenantTarget && !bZombie) //If we're a zombie, permenant target will be filled from inside who to look for
-				permenantTarget = pawn_;
-			else if (!permenantTarget && bZombie)
-				permenantTarget = enemyForZombie;
-		}
 	}
 }
 void AGeomancer::Attack()
@@ -255,51 +239,35 @@ void AGeomancer::EndReload()
 }
 void AGeomancer::Death()
 {
+	AEnemyBase::Death();
 	//Enemy die animation
 	if (animInstance)
 		animInstance->Death();
-	bDead = true;
-	aiController->SetSeenTarget(nullptr);
-	permenantTarget = nullptr;
-	enemyForZombie = nullptr;
-	aiController->SetDead();
 
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	if (!hasAddedEXP)
-		AddEXP();
-
-	enemyForZombie = nullptr;
-	permenantTarget = nullptr;
-	distractingZombie = nullptr;
+	currentState = EGeomancerState::DEATH;
 
 }
 void AGeomancer::Zombify()
 {
-	bZombie = true;
+	AEnemyBase::Zombify();
 	if (animInstance)
 		animInstance->SetZombify();
 	GetWorld()->GetTimerManager().SetTimer(zombifyTimerHandle, this, &AGeomancer::EndZombify, zombifyDuration, false);
-	hp = 70.0f;
-	AEnemyBase::OnSeePlayer(nullptr);
+	bHasChosenSpell = false;
 }
 void AGeomancer::EndZombify()
 {
+	AEnemyBase::EndZombify();
 	currentState = EGeomancerState::DEATH;
 	if (animInstance)
 		animInstance->Death();
+
 }
 
 void AGeomancer::ActivateZombie()
 {
-	if (aiController)
-	{
-		aiController->ResetDead();
-	}
+	AEnemyBase::ActivateZombie();
 	currentState = EGeomancerState::PATROLLING;
-	sense->bOnlySensePlayers = false;
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetCapsuleComponent()->SetCollisionProfileName("Zombie");
 }
 
 void AGeomancer::SpawnCastProjectile()
@@ -369,7 +337,6 @@ void AGeomancer::TakeRegularDamage(float damage_)
 	if (!bDead || bZombie)
 	{
 		hp -= damage_;
-		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
 
 		if (hp <= 0.5f && !bZombie)
 		{
@@ -396,7 +363,16 @@ void AGeomancer::TakeRegularDamage(float damage_)
 			if (animInstance)
 				animInstance->ResetSitting();
 
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		if (!aiController->GetPlayer() && !bZombie)
+		{
+			if (aiController)
+			{
+				if (!bDead || bZombie)
+				{
+					aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+				}
+			}
+		}
 	}
 }
 void AGeomancer::TakeSpellDamage(float damage_)
@@ -404,7 +380,6 @@ void AGeomancer::TakeSpellDamage(float damage_)
 	if (!bDead || bZombie)
 	{
 		hp -= damage_;
-		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
 
 		if (hp <= 0.5f)
 		{
@@ -426,7 +401,16 @@ void AGeomancer::TakeSpellDamage(float damage_)
 			if (animInstance)
 				animInstance->ResetSitting();
 
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		if (!aiController->GetPlayer() && !bZombie)
+		{
+			if (aiController)
+			{
+				if (!bDead || bZombie)
+				{
+					aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+				}
+			}
+		}
 	}
 }
 void AGeomancer::TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_)
@@ -434,7 +418,6 @@ void AGeomancer::TakeSpellDamage(float damage_, EStatusEffects effect_, float du
 	if (!bDead || bZombie)
 	{
 		hp -= damage_;
-		//UE_LOG(LogTemp, Warning, TEXT("HP is %f"), hp);
 
 		if (hp <= 0.5f)
 		{
@@ -459,7 +442,13 @@ void AGeomancer::TakeSpellDamage(float damage_, EStatusEffects effect_, float du
 
 	if (!aiController->GetPlayer() && !bZombie)
 	{
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		if (aiController)
+		{
+			if (!bDead || bZombie)
+			{
+				aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+			}
+		}
 	}
 }
 

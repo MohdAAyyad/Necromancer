@@ -18,6 +18,8 @@ AEnemyProjectile::AEnemyProjectile()
 	movement->MaxSpeed = 500.f;
 	damage = 40.0f;
 	parent = nullptr;
+	bCanPlayerDestroyThisProjectile = true; //The default is true
+	impactVolume = 0.5f;
 }
 
 void AEnemyProjectile::BeginPlay()
@@ -35,12 +37,15 @@ void AEnemyProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 	if (otherActor_ != nullptr && otherComp_ != nullptr && otherActor_ != this)
 	{
 		if (impact)
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(0.2f, 0.2f, 0.2f));
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(0.5f, 0.5f, 0.5f));
+
+		if (impactSound && !bBeingAbsorbed)
+			UGameplayStatics::SpawnSoundAtLocation(GetWorld(), impactSound, otherActor_->GetActorLocation(), FRotator::ZeroRotator, impactVolume, impactPitch, 0.0f, impactSound->AttenuationSettings);
 
 		ANecromancerCharacter* player = Cast<ANecromancerCharacter>(otherActor_);
 		if (player)
 		{
-			player->TakeDamage(damage);
+			player->PlayerTakeDamage(damage);
 			Destroy();
 		}
 		else
@@ -52,15 +57,16 @@ void AEnemyProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 				{
 					if (parent->bZombie) //If the parent is a zombie, then make sure it's attacking non-zombie enemies and updating the distracting enemy reference
 					{
-						if (!enemy->bZombie && !enemy->IsDead() && enemy != parent)
+						if (!enemy->bZombie && !enemy->IsDead() && enemy != parent && !bBeingAbsorbed)
 						{
 							enemy->TakeSpellDamageFromZombie(parent, damage);
+							parent->AddZombieTargetByProjectile(enemy);
 							Destroy();
 						}
 					}
 					else //Otherwise, you're an enemy attacking a zombie
 					{
-						if (enemy->bZombie && enemy != parent)
+						if (enemy->bZombie && enemy != parent && !bBeingAbsorbed)
 						{
 							enemy->TakeRegularDamage(damage);
 							Destroy();
@@ -81,14 +87,31 @@ void AEnemyProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 					ABloodWall* wall = Cast<ABloodWall>(otherActor_);
 					if (wall)
 					{
-						wall->TakeDamage(damage);
+						wall->PropTakeDamage(damage);
 						Destroy();
 					}
 					else
 					{
-						//AAimProjectile* proj = Cast<AAimProjectile>(otherActor_);
-						//if (proj)
-						Destroy();
+						AAimProjectile* proj = Cast<AAimProjectile>(otherActor_);
+						if (proj)
+						{
+							if(bCanPlayerDestroyThisProjectile)
+								Destroy();
+						}
+						else
+						{
+							ADestructibleProp* prop = Cast<ADestructibleProp>(otherActor_);
+							if (prop)
+							{
+								prop->PropTakeDamage(damage);
+								Destroy();
+							}
+							else
+							{
+								if(!bBeingAbsorbed)
+									Destroy();
+							}
+						}
 					}
 				}
 			}
@@ -133,4 +156,11 @@ void AEnemyProjectile::SetHoming(APawn* target)
 	movement->HomingTargetComponent = target->GetRootComponent();
 	movement->bIsHomingProjectile = true;
 	movement->HomingAccelerationMagnitude = movement->Velocity.Size();
+}
+
+
+void AEnemyProjectile::DestroyProjectileByPlayer()
+{
+	if (bCanPlayerDestroyThisProjectile)
+		Destroy();
 }

@@ -54,14 +54,17 @@ AKnight::AKnight():AEnemyBase()
 	 castSpellLocation->SetupAttachment(RootComponent);	
 
 	 GetCapsuleComponent()->SetCollisionProfileName("AliveEnemy");
+
+	 meleeImpactVolume = meleeImpactPitch = 1.0f;
 }
 
 void AKnight::BeginPlay()
 {
-	Super::BeginPlay();
+
 	animInstance = Cast<UKnightAnimInstance>(GetMesh()->GetAnimInstance());
 	if (sense)
 	{
+		sense->OnSeePawn.RemoveAll(this);
 		sense->OnSeePawn.AddDynamic(this, &AKnight::OnSeePlayer);
 	}
 
@@ -70,6 +73,8 @@ void AKnight::BeginPlay()
 
 	if (specialParticles)
 		specialParticles->DeactivateSystem();
+
+	Super::BeginPlay();
 
 }
 
@@ -101,7 +106,6 @@ void AKnight::TakeRegularDamage(float damage_)
 	if (!bDead || bZombie)
 	{
 		hp -= damage_;
-		//UE_LOG(LogTemp, Warning, TEXT("damage is %f"), damage_);
 
 		if (hp <= 0.5f && !bZombie)
 		{
@@ -116,7 +120,7 @@ void AKnight::TakeRegularDamage(float damage_)
 		{
 			if (hp > 0.4f*maxHP && !hasCastSpecial)
 			{
-				if (currentState != EKnightState::CASTING && currentState != EKnightState::ATTACKING && currentState != EKnightState::DEATH)
+				if (currentState != EKnightState::CASTING && currentState != EKnightState::RELOADING && currentState != EKnightState::ATTACKING && currentState != EKnightState::DEATH)
 					if (animInstance)
 						animInstance->SetHit();
 				if (aiController)
@@ -133,8 +137,18 @@ void AKnight::TakeRegularDamage(float damage_)
 	if (!aiController->GetPlayer() && !bZombie)
 	{
 		moveLoc = GetActorLocation() - 75.0f*GetActorRightVector();
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
 		currentState = EKnightState::PATROLLING;
+
+		if (!aiController->GetPlayer() && !bZombie)
+		{
+			if (aiController)
+			{
+				if (!bDead || bZombie)
+				{
+					aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+				}
+			}
+		}
 	}
 }
 
@@ -143,8 +157,6 @@ void AKnight::TakeSpellDamage(float damage_, EStatusEffects effect_, float durat
 	if (!bDead || bZombie)
 	{
 		hp -= damage_;
-		UE_LOG(LogTemp, Warning, TEXT("damage is %f"), damage_);
-
 		if (hp <= 0.5f)
 		{
 			bTypeOfBPToSpawn = true; //True-->Tainted
@@ -164,7 +176,7 @@ void AKnight::TakeSpellDamage(float damage_, EStatusEffects effect_, float durat
 
 			if (hp > 0.4f*maxHP)
 			{
-				if (currentState != EKnightState::CASTING && currentState != EKnightState::ATTACKING && currentState != EKnightState::DEATH)
+				if (currentState != EKnightState::CASTING && currentState != EKnightState::RELOADING && currentState != EKnightState::ATTACKING && currentState != EKnightState::DEATH)
 					if (animInstance)
 						animInstance->SetHit();
 				if (aiController)
@@ -181,8 +193,18 @@ void AKnight::TakeSpellDamage(float damage_, EStatusEffects effect_, float durat
 	if (!aiController->GetPlayer())
 	{
 		moveLoc = GetActorLocation() - 75.0f*GetActorRightVector();
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
 		currentState = EKnightState::PATROLLING;
+
+		if (!aiController->GetPlayer() && !bZombie)
+		{
+			if (aiController)
+			{
+				if (!bDead || bZombie)
+				{
+					aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+				}
+			}
+		}
 	}
 }
 
@@ -191,8 +213,6 @@ void AKnight::TakeSpellDamage(float damage_)
 	if (!bDead || bZombie)
 	{
 		hp -= damage_;
-		UE_LOG(LogTemp, Warning, TEXT("damage is %f"), damage_);
-
 		if (hp <= 0.5f)
 		{
 			bTypeOfBPToSpawn = true; //True-->Tainted
@@ -203,7 +223,7 @@ void AKnight::TakeSpellDamage(float damage_)
 		{
 			if (hp > 0.4f*maxHP)
 			{
-				if (currentState != EKnightState::CASTING && currentState != EKnightState::ATTACKING && currentState != EKnightState::DEATH)
+				if (currentState != EKnightState::CASTING && currentState != EKnightState::RELOADING && currentState != EKnightState::ATTACKING && currentState != EKnightState::DEATH)
 					if (animInstance)
 						animInstance->SetHit();
 				if (aiController)
@@ -220,8 +240,18 @@ void AKnight::TakeSpellDamage(float damage_)
 	if (!aiController->GetPlayer())
 	{
 		moveLoc = GetActorLocation() - 75.0f*GetActorRightVector();
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
 		currentState = EKnightState::PATROLLING;
+
+		if (!aiController->GetPlayer() && !bZombie)
+		{
+			if (aiController)
+			{
+				if (!bDead || bZombie)
+				{
+					aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+				}
+			}
+		}
 	}
 }
 //Called inside take damage functions to see if health is less than 60% and if it is, use special once
@@ -259,26 +289,14 @@ void AKnight::CheckForSpecial()
 
 void AKnight::Death()
 {
+	Super::Death();
 	//Enemy die animation
 	if (animInstance)
 		animInstance->Death();
-
-
-	bDead = true;
-	aiController->SetSeenTarget(nullptr);
-	aiController->SetDead();
 	currentState = EKnightState::DEATH;
 	if (specialParticles)
 		specialParticles->DeactivateSystem();
 	attackHitBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	if (!hasAddedEXP)
-		AddEXP();
-
-	enemyForZombie = nullptr;
-	permenantTarget = nullptr;
-	distractingZombie = nullptr;
 }
 
 #pragma endregion
@@ -287,38 +305,32 @@ void AKnight::Death()
 
 void AKnight::Zombify()
 {//Called from the player script when zombify spell is used
+
+	Super::Zombify();
 	if (animInstance)
 		animInstance->SetZombify();
 	//Kill the zombie after the zombify duration has passed
 	GetWorld()->GetTimerManager().SetTimer(zombifyTimerHandle, this, &AKnight::EndZombify, zombifyDuration, false);
 	hasCastSpecial = false;
-	hp = 10.0f;
-	Super::OnSeePlayer(nullptr);
-	bZombie = true;
 }
 
 void AKnight::EndZombify()
 {
+	Super::EndZombify();
 	currentState = EKnightState::DEATH;
 	if (animInstance)
 		animInstance->Death();
+
 }
 
 void AKnight::ActivateZombie()
 {
-	//Called from animation
-	sense->bOnlySensePlayers = false; //See other enemies as well
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetCapsuleComponent()->SetCollisionProfileName("Zombie");
-	attackHitBox->SetCollisionProfileName("ZombieProjectile");
+	//Called from animation=
+	Super::ActivateZombie();
 	attackHitBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	attackHitBox->SetCollisionProfileName("ZombieProjectile");
 	if (aiController)
-	{
-		aiController->ResetDead();
-		//Don't move once you turn into a zombie
 		aiController->SetNewLocation(GetActorLocation());
-	}
-	//currentState = EKnightState::TOPLAYER;
 }
 #pragma endregion
 
@@ -327,24 +339,13 @@ void AKnight::ActivateZombie()
 
 void AKnight::OnSeePlayer(APawn* pawn_)
 {
-	//UE_LOG(LogTemp, Warning, TEXT("Alive seen this %s"), *pawn_->GetName());
-	if (!bDead || bZombie)
-	{
-		WhoToLookFor(pawn_);
-
-		if (!distractingZombie)
-		{
-			if (!permenantTarget && !bZombie) //If we're a zombie, permenant target will be filled from inside who to look for
-				permenantTarget = pawn_;
-			else if (!permenantTarget && bZombie)
-				permenantTarget = enemyForZombie;
-		}
+	Super::OnSeePlayer(pawn_);
 
 		if (aiController->GetPlayer()) //Only work when you actually see a target
 		{
 			if ((currentState == EKnightState::PATROLLING || bZombie) && !hasCastSpecial) //If special is cast, go for melee
 			{
-				//UE_LOG(LogTemp, Error, TEXT("Inside Patrolling"));
+
 				float distance = GetDistanceToPlayer();
 
 				if (distance <= acceptableAttackDistance) //If the player is close enough, go to player
@@ -354,11 +355,11 @@ void AKnight::OnSeePlayer(APawn* pawn_)
 
 				else if (distance >= acceptableStrafeDistance) //If the player is far enough, strafe, if they're close, attack. //Special doesn't strafe
 				{
-					//UE_LOG(LogTemp, Error, TEXT("Strafe dude"));
+
 					currentState = EKnightState::STRAFING;
 					moveLoc = GetActorLocation() - 75.0f*GetActorRightVector();
 
-					//UE_LOG(LogTemp, Error, TEXT("Strafe Move Loc %f %f %f"),moveLoc.X, moveLoc.Y, moveLoc.Z);
+
 					if (aiController)
 					{
 						aiController->SetNewLocation(moveLoc); //Pass in the target location for the move to node in BT
@@ -386,8 +387,8 @@ void AKnight::OnSeePlayer(APawn* pawn_)
 				currentState = EKnightState::TOPLAYER;
 			}
 		}
-	}
 }
+
 
 #pragma endregion
 
@@ -414,7 +415,7 @@ void AKnight::ToPlayer()
 	//UE_LOG(LogTemp, Warning, TEXT("Inside ToPlayer"));
 	if (distance <= acceptableMeleeDistance) //If you're close enough to the player, melee
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Player is close enough"));
+		//UE_LOG(LogTemp, Warning, TEXT("Player is close enough"));
 		currentState = EKnightState::ATTACKING;
 		if (aiController)
 		{
@@ -480,7 +481,8 @@ void AKnight::EndReload()
 	if (!hasCastSpecial && !bZombie)
 	{
 		currentState = EKnightState::PATROLLING;
-		OnSeePlayer(player);
+		if (aiController)
+			aiController->SetSeenTarget(player);
 	}
 	else //Special does not stop
 		currentState = EKnightState::TOPLAYER;
@@ -511,10 +513,15 @@ void AKnight::AttackOverlap (UPrimitiveComponent* overlappedComponent_,
 {
 	if (otherActor_ != nullptr && otherActor_ != this && overlappedComponent_ != nullptr)
 	{
-		ANecromancerCharacter* player = Cast<ANecromancerCharacter>(otherActor_);
-		if (player)
+		if (meleeImpact)
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), meleeImpact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f));
+		if (meleeImpactSound)
+			UGameplayStatics::SpawnSoundAtLocation(GetWorld(), meleeImpactSound, otherActor_->GetActorLocation(), FRotator::ZeroRotator, meleeImpactVolume, meleeImpactPitch, 0.0f, meleeImpactSound->AttenuationSettings);
+
+		ANecromancerCharacter* player_ = Cast<ANecromancerCharacter>(otherActor_);
+		if (player_)
 		{
-			player->TakeDamage(baseDamage * damageModifier);
+			player_->PlayerTakeDamage(baseDamage * damageModifier);
 		}
 		else
 		{
@@ -530,7 +537,7 @@ void AKnight::AttackOverlap (UPrimitiveComponent* overlappedComponent_,
 				}
 				else
 				{
-					if (!enemy->IsDead()) //What you're fighting is a zombie so attack normally
+					if (enemy->bZombie) //What you're fighting is a zombie so attack normally
 					{
 						enemy->TakeRegularDamage(baseDamage * damageModifier);
 					}
@@ -548,7 +555,7 @@ void AKnight::AttackOverlap (UPrimitiveComponent* overlappedComponent_,
 					ABloodWall* wall = Cast<ABloodWall>(otherActor_);
 					if (wall)
 					{
-						wall->TakeDamage(baseDamage * damageModifier);
+						wall->PropTakeDamage(baseDamage * damageModifier);
 					}
 				}
 			}
@@ -590,7 +597,7 @@ void AKnight::EndSpecial()
 
 void AKnight::distactingZombieIsDead()
 {
-	UE_LOG(LogTemp, Warning, TEXT("DistarctingZOmbieIsDead has been called"));
+	//UE_LOG(LogTemp, Warning, TEXT("DistarctingZOmbieIsDead has been called"));
 	Super::distactingZombieIsDead();
 	currentState = EKnightState::TOPLAYER;
 }

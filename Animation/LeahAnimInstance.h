@@ -43,6 +43,9 @@ public:
 		UPROPERTY(EditAnywhere, BlueprintReadOnly)
 			bool bDash;
 
+		UPROPERTY(EditAnywhere, BlueprintReadOnly)
+			bool bDead;
+
 
 		//Spells
 		UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -75,5 +78,8 @@ public:
 			void ConjurSpell();
 		UFUNCTION(BlueprintCallable)
 			void SpawnWall();
+		UFUNCTION(BlueprintCallable)
+			void Death();
+
 
 };

@@ -57,10 +57,6 @@ void USummonAnimInstance::Death()
 {
 	bDead = true;
 	bActive = false;
-}
-
-void USummonAnimInstance::DestroySummon()
-{
 	if (summonOwner)
 		summonOwner->LeaveScene();
 }

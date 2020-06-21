@@ -12,7 +12,8 @@ AArcheress::AArcheress():AEnemyBase()
 {
 	hp = 100.0f;
 	maxHP = 100.0f;
-	baseDamage = 15.0f;
+	baseDamage = 40.0f;
+	castDamage = 60.0f;
 	damageModifier = 1.0f; //This increases the higher the player's level is
 	bDead = false;
 	currentState = EArcheressState::IDLE;
@@ -27,19 +28,18 @@ AArcheress::AArcheress():AEnemyBase()
 	arrowSummonLocation = CreateDefaultSubobject<USceneComponent>(TEXT("arrowSummonLocation"));
 	arrowSummonLocation->SetupAttachment(RootComponent);
 	GetCapsuleComponent()->SetCollisionProfileName("AliveEnemy");
+
+	castVolume = castPitch = 1.0f;
 }
 void AArcheress::BeginPlay()
 {
-	Super::BeginPlay();
 
 	animInstance = Cast<UArcheressAnimInstance>(GetMesh()->GetAnimInstance());
-	if (sense)
-	{
-		sense->OnSeePawn.AddDynamic(this, &AArcheress::OnSeePlayer);
-	}
 
 	if (castParticles)
 		castParticles->DeactivateSystem();
+
+	Super::BeginPlay();
 }
 void AArcheress::Tick(float DeltaTime)
 {
@@ -51,27 +51,6 @@ void AArcheress::Tick(float DeltaTime)
 	}
 }
 
-#pragma region See Player
-
-void AArcheress::OnSeePlayer(APawn* pawn_)
-{
-	if (!bDead || bZombie)
-	{
-		WhoToLookFor(pawn_);
-
-		if (!distractingZombie)
-		{
-			if (!permenantTarget && !bZombie) //If we're a zombie, permenant target will be filled from inside who to look for
-				permenantTarget = pawn_;
-			else if (!permenantTarget && bZombie)
-				permenantTarget = enemyForZombie;
-		}
-	}
-}
-
-#pragma endregion
-
-
 void AArcheress::Attack()
 {
 	if (GetDistanceToPlayer() <= attackAcceptableDistance && currentState == EArcheressState::IDLE) //If the player is close enough, aim
@@ -81,18 +60,22 @@ void AArcheress::Attack()
 			if (!animInstance->IsMontagePlaying())
 			{
 				castChance = FMath::RandRange(0, 40);
+
+				if (castChance >= 0 && castChance <= 10)
+				{
+					animInstance->NextCast();
+					if (castParticles)
+						castParticles->ActivateSystem(true);
+					if (castSound)
+						UGameplayStatics::SpawnSoundAtLocation(GetWorld(), castSound, GetActorLocation(), FRotator::ZeroRotator, castVolume, castPitch, 0.0f, castSound->AttenuationSettings);
+
+				}
+				else
+				{
+					animInstance->NextAttack();
+				}
+				currentState = EArcheressState::AIM;
 			}
-			if (castChance >= 0 && castChance <= 10)
-			{
-				animInstance->NextCast();
-				if (castParticles)
-					castParticles->ActivateSystem(true);
-			}
-			else
-			{
-				animInstance->NextAttack();
-			}
-			currentState = EArcheressState::AIM;
 		}
 	}
 }
@@ -121,7 +104,13 @@ void AArcheress::TakeRegularDamage(float damage_)
 
 	if (!aiController->GetPlayer() && !bZombie)
 	{
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		if (aiController)
+		{
+			if (!bDead || bZombie)
+			{
+				aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+			}
+		}
 	}
 }
 void AArcheress::TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_)
@@ -153,7 +142,13 @@ void AArcheress::TakeSpellDamage(float damage_, EStatusEffects effect_, float du
 
 	if (!aiController->GetPlayer() && !bZombie)
 	{
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		if (aiController)
+		{
+			if (!bDead || bZombie)
+			{
+				aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+			}
+		}
 	}
 }
 
@@ -178,47 +173,41 @@ void AArcheress::TakeSpellDamage(float damage_)
 
 	if (!aiController->GetPlayer() && !bZombie)
 	{
-		OnSeePlayer(GetWorld()->GetFirstPlayerController()->GetPawn()); //If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+		if (aiController)
+		{
+			if (!bDead || bZombie)
+			{
+				aiController->SetSeenTarget(GetWorld()->GetFirstPlayerController()->GetPawn());//If the enemy has not seen the player yet, and the player attacks it, it should now see the player
+			}
+		}
 	}
 }
 
 
 void AArcheress::Death()
 {
+	Super::Death();
 	//Enemy die animation
 	if (animInstance)
 		animInstance->Death();
-
-	bDead = true;
-	aiController->SetSeenTarget(nullptr);
 	currentState = EArcheressState::DEATH;
 	if (castParticles)
 		castParticles->DeactivateSystem();
-
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	if (!hasAddedEXP)
-		AddEXP();
-
-	permenantTarget = nullptr;
-	enemyForZombie = nullptr;
-	distractingZombie = nullptr;
 }
 #pragma region Zombification
 
 void AArcheress::Zombify()
 {
-	bZombie = true;
+	Super::Zombify();
 	if (animInstance)
 		animInstance->SetZombify();
 	GetWorld()->GetTimerManager().SetTimer(zombifyTimerHandle, this, &AArcheress::EndZombify, zombifyDuration, false);
-	hp = 70.0f;
-	Super::OnSeePlayer(nullptr);
 }
+
 
 void AArcheress::EndZombify()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Inside End Zombify"));
+	Super::EndZombify();
 	currentState = EArcheressState::DEATH;
 	if (animInstance)
 		animInstance->Death();
@@ -226,14 +215,8 @@ void AArcheress::EndZombify()
 
 void AArcheress::ActivateZombie()
 {
-	if (aiController)
-	{
-		aiController->ResetDead();
-	}
+	Super::ActivateZombie();
 	currentState = EArcheressState::IDLE;
-	sense->bOnlySensePlayers = false;
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetCapsuleComponent()->SetCollisionProfileName("Zombie");
 }
 
 #pragma endregion
@@ -258,6 +241,7 @@ void AArcheress::SpawnRegularArrow()
 			{
 				proj->ChangeProfileName("ZombieProjectile");
 			}
+			proj->SetDamage(baseDamage * damageModifier);
 			proj->SetParent(this);
 		}
 	}
@@ -280,6 +264,7 @@ void AArcheress::DeactivateCastParticles()
 			{
 				proj->ChangeProfileName("ZombieProjectile");
 			}
+			proj->SetDamage(castDamage * damageModifier);
 			proj->SetParent(this);
 		}
 	}

@@ -26,7 +26,7 @@ void ACryptoCharge::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 		ANecromancerCharacter* player = Cast<ANecromancerCharacter>(otherActor_);
 		if (player)
 		{
-			player->TakeDamage(damage);
+			player->PlayerTakeDamage(damage);
 			Destroy();
 		}
 		else
@@ -34,10 +34,24 @@ void ACryptoCharge::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_); //This mainly for zombies
 			if (enemy)
 			{
-				if (!enemy->bZombie && !enemy->IsDead() && enemy != parent)
+				if (parent)
 				{
-					enemy->TakeSpellDamage(damage);
-					Destroy();
+					if (parent->bZombie) //If the parent is a zombie, then make sure it's attacking non-zombie enemies and updating the distracting enemy reference
+					{
+						if (!enemy->bZombie && !enemy->IsDead() && enemy != parent && !bBeingAbsorbed)
+						{
+							enemy->TakeSpellDamageFromZombie(parent, damage);
+							Destroy();
+						}
+					}
+					else //Otherwise, you're an enemy attacking a zombie
+					{
+						if (enemy->bZombie && enemy != parent && !bBeingAbsorbed)
+						{
+							enemy->TakeRegularDamage(damage);
+							Destroy();
+						}
+					}
 				}
 			}
 			else
@@ -45,15 +59,9 @@ void ACryptoCharge::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 				ABloodWall* wall = Cast<ABloodWall>(otherActor_);
 				if (wall)
 				{
-					wall->TakeDamage(damage); //The player can build up walls to decrease the power of the charge ball
+					wall->PropTakeDamage(damage); //The player can build up walls to decrease the power of the charge ball
 					damage -= chargeLossDueToWall;
 					if (damage <= 1.0f)
-						Destroy();
-				}
-				else
-				{
-					//AAimProjectile* proj = Cast<AAimProjectile>(otherActor_);
-					//if (proj)
 						Destroy();
 				}
 			}

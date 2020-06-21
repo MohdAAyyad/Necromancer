@@ -70,9 +70,12 @@ void UArcheressAnimInstance::ResetCast()
 }
 void UArcheressAnimInstance::SetHit()
 {
-	bHit = true;
-	if (aimShootMontage)
-		Montage_Pause(aimShootMontage);
+	if (!bHit)
+	{
+		bHit = true;
+		if (aimShootMontage)
+			Montage_Pause(aimShootMontage);
+	}
 }
 void UArcheressAnimInstance::ResetHit()
 {

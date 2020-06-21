@@ -6,6 +6,8 @@
 #include "AI/EnemyBase.h"
 #include "EnemyProjectile.h"
 #include "Engine/Classes/Particles/ParticleSystemComponent.h"
+#include "Sound/SoundBase.h"
+#include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "Archeress.generated.h"
 
 /**
@@ -38,7 +40,6 @@ public:
 	EArcheressState currentState;
 	AArcheress();
 	int castChance;
-	void OnSeePlayer(APawn* pawn_) override;
 	void TakeRegularDamage(float damage_) override;
 	void TakeSpellDamage(float damage_) override;
 	void TakeSpellDamage(float damage_, EStatusEffects effect_, float duration_) override;
@@ -63,16 +64,26 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Cast")
 		UParticleSystemComponent* castParticles;
 
+	UPROPERTY(EditAnywhere, Category = "Cast")
+		USoundBase* castSound;
+	UPROPERTY(EditAnywhere, Category = "Cast")
+		float castVolume;
+	UPROPERTY(EditAnywhere, Category = "Cast")
+		float castPitch;
+	UPROPERTY(EditAnywhere, Category = "Cast")
+		float castDamage;
+
 	UPROPERTY(EditAnywhere)
 		USceneComponent* arrowSummonLocation;
 
 	void Death() override;
-	void Zombify() override;
+
 	void EndZombify() override;
 
 	void Attack();
 
 public:
+	void Zombify() override;
 	void ActivateZombie() override;
 
 

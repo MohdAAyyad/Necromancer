@@ -39,7 +39,7 @@ void UKnightAnimInstance::NextAttack()
 {
 	if (!bAttack0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NEEEEXT ATTTACCKKK"));
+		//UE_LOG(LogTemp, Warning, TEXT("NEEEEXT ATTTACCKKK"));
 		bAttack0 = true;
 		bReload = false;
 	}
@@ -78,7 +78,7 @@ void UKnightAnimInstance::SetStrafe()
 {
 	bStrafe = true;
 	bHit = false;
-	UE_LOG(LogTemp, Warning, TEXT("Setting Strafe"));
+	//UE_LOG(LogTemp, Warning, TEXT("Setting Strafe"));
 }
 
 
@@ -87,7 +87,7 @@ void UKnightAnimInstance::ResetAttack()
 	//Called from anim notify
 	if (bAttack0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("STTTTOOPPPPP ATTTACCKKK"));
+	//	UE_LOG(LogTemp, Warning, TEXT("STTTTOOPPPPP ATTTACCKKK"));
 		bAttack0 = false;
 
 		//Placeholder code: Current state should not be public
@@ -135,7 +135,7 @@ void UKnightAnimInstance::ResetReload()
 
 void UKnightAnimInstance::ResetStrafe()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Reset strafe"));
+	//UE_LOG(LogTemp, Warning, TEXT("Reset strafe"));
 	bStrafe = false;
 }
 
@@ -167,7 +167,8 @@ void UKnightAnimInstance::CastSpell()
 
 void UKnightAnimInstance::SetHit()
 {
-	bHit = true;
+	if (!bHit)
+		bHit = true;
 }
 void UKnightAnimInstance::ResetHit()
 {

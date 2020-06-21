@@ -23,6 +23,13 @@ protected:
 		UPROPERTY(EditAnywhere)
 			float timeToEnableCollision;
 		void EnableCollision();
+
+		void OnOverlap(UPrimitiveComponent* overlappedComponent_,
+			AActor* otherActor_,
+			UPrimitiveComponent* otherComp_,
+			int32 otherBodyIndex_,
+			bool bFromSweep_,
+			const FHitResult &sweepResult_)override;
 	
 	
 };
