@@ -23,7 +23,12 @@ ACheckpoint::ACheckpoint()
 	activeParticles = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Active Particles"));
 	activeParticles->SetupAttachment(root);
 
+	audioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("Audio Component"));
+	audioComponent->SetupAttachment(root);
+
 	timeToDisableP1 = 0.5f;
+	hpToRestore = 150.0f;
+	bpToRestore = 150.0f;
 
 }
 
@@ -37,6 +42,9 @@ void ACheckpoint::BeginPlay()
 
 	if (sphere)
 		sphere->OnComponentBeginOverlap.AddDynamic(this, &ACheckpoint::OnOverlap);
+	
+	if (audioComponent)
+		audioComponent->Sound = sound;
 	
 }
 
@@ -61,6 +69,7 @@ void ACheckpoint::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 
 		if (player)
 		{
+			//Update the current checkpoint
 			ANecromancerGameMode* gameMode = Cast<ANecromancerGameMode>(GetWorld()->GetAuthGameMode());
 
 			if (gameMode)
@@ -70,9 +79,13 @@ void ACheckpoint::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 					activeParticles->ActivateSystem(true);
 				GetWorld()->GetTimerManager().SetTimer(timerHandleToDisableP1, this, &ACheckpoint::DisableInactiveParticles, timeToDisableP1, false); //Disable the inactiveParticles
 				sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-				//TODO
-				//Add an audio que
+				//Play sound
+				if (audioComponent)
+					audioComponent->Play();
 			}
+
+			//Heal player
+			player->HealthDueToCheckpoint(hpToRestore, bpToRestore);
 		}
 	}
 }

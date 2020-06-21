@@ -65,4 +65,6 @@ protected:
 
 	 AEnemyAIController* aiController;
 	 UPrisonerAnimInstance* animInstance;
+
+	 void SetWithinRangeOfPlayer(bool value_) override;
 };

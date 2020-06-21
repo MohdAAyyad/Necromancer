@@ -154,22 +154,29 @@ UTexture2D* UPlayerUIController::LookForAimTexture(EAimSpells spell_)
 }
 UTexture2D* UPlayerUIController::LookForBloodTexture(EBloodSpells spell_)
 {
-	switch (spell_)
+	if (SpellsInventory::GetInstance()->IsBloodSpellLockedBehindAQuest(spell_)) //Check if the spell is locked behind a quest first
 	{
-	case EBloodSpells::BLOODNONE:
 		return spellTextures[0];
-	case EBloodSpells::BLOODMIASMA:
-		return spellTextures[16];
-	case EBloodSpells::SERVEINDEATH:
-		return spellTextures[17];
-	case EBloodSpells::BLOODEXPLOSION:
-		return spellTextures[18];
-	case EBloodSpells::BLOODTORNADO:
-		return spellTextures[19];
-	case EBloodSpells::SUMMONSKELETON:
-		return spellTextures[20];
-	default:
-		return spellTextures[0];
+	}
+	else
+	{
+		switch (spell_)
+		{
+		case EBloodSpells::BLOODNONE:
+			return spellTextures[0];
+		case EBloodSpells::BLOODMIASMA:
+			return spellTextures[16];
+		case EBloodSpells::SERVEINDEATH:
+			return spellTextures[17];
+		case EBloodSpells::BLOODEXPLOSION: //Quest spell, will be hidden until unlocked
+			return spellTextures[18];
+		case EBloodSpells::BLOODTORNADO:
+			return spellTextures[19];
+		case EBloodSpells::SUMMONSKELETON:
+			return spellTextures[20];
+		default:
+			return spellTextures[0];
+		}
 	}
 }
 UTexture2D* UPlayerUIController::LookForInnateTexture(EInnateSpells spell_)
@@ -254,18 +261,21 @@ void UPlayerUIController::UnlockAimSpell(int index_)
 void UPlayerUIController::UnlockBloodSpell(int index_)
 {
 	EBloodSpells spell_ = static_cast<EBloodSpells>(index_);
-	if (!SpellsInventory::GetInstance()->IsBloodSpellUnlocked(spell_))
+	if (!SpellsInventory::GetInstance()->IsBloodSpellLockedBehindAQuest(spell_))
 	{
-		if (EXPManager::GetInstance()->GetCurrentSkillPoints() > 0)
+		if (!SpellsInventory::GetInstance()->IsBloodSpellUnlocked(spell_))
 		{
-			SpellsInventory::GetInstance()->UnlockBloodSpell(spell_);
-			SpellsInventory::GetInstance()->EquipNewBloodSpell(spell_);
-			EXPManager::GetInstance()->UseASkillPoint();
+			if (EXPManager::GetInstance()->GetCurrentSkillPoints() > 0)
+			{
+				SpellsInventory::GetInstance()->UnlockBloodSpell(spell_);
+				SpellsInventory::GetInstance()->EquipNewBloodSpell(spell_);
+				EXPManager::GetInstance()->UseASkillPoint();
+			}
 		}
-	}
-	else
-	{
-		SpellsInventory::GetInstance()->EquipNewBloodSpell(spell_);
+		else
+		{
+			SpellsInventory::GetInstance()->EquipNewBloodSpell(spell_);
+		}
 	}
 }
 void UPlayerUIController::UnlockInnateSpell(int index_)
@@ -327,12 +337,24 @@ FString UPlayerUIController::GetEquippedBloodDescription(int index_)
 
 FString UPlayerUIController::GetLockedBloodName(int index_)
 {
-	return(SpellsInventory::GetInstance()->GetBloodSpellName(static_cast<EBloodSpells>(index_)));
+	EBloodSpells spell_ = static_cast<EBloodSpells>(index_);
+
+	if (!SpellsInventory::GetInstance()->IsBloodSpellLockedBehindAQuest(spell_)) //If the spell is not locked behind a quest, no worries
+	{
+		return(SpellsInventory::GetInstance()->GetBloodSpellName(spell_));
+	}
+	return ""; //Otherwise, return an empty string
 }
 
 FString UPlayerUIController::GetLockedBloodDescription(int index_)
 {
-	return(SpellsInventory::GetInstance()->GetBloodSpellDescription(static_cast<EBloodSpells>(index_)));
+	EBloodSpells spell_ = static_cast<EBloodSpells>(index_);
+
+	if (!SpellsInventory::GetInstance()->IsBloodSpellLockedBehindAQuest(spell_)) //If the spell is not locked behind a quest, no worries
+	{
+		return(SpellsInventory::GetInstance()->GetBloodSpellDescription(spell_));
+	}
+	return "";
 }
 
 

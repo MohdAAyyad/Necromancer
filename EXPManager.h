@@ -33,5 +33,6 @@ public:
 	bool UpdateCurrentEXP(int expToBeAdded_); //Adds exp to the current amount. Returns true if there's a level up
 	inline void UseASkillPoint() { skillPoints--; };
 	inline void RegisterUICTRL(UPlayerUIController* uictrl_) { uictrl = uictrl_; };
+	void ResetEXP(); //Called on new game
 
 };

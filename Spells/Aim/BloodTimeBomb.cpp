@@ -43,6 +43,9 @@ void ABloodTimeBomb::Explode()
 {
 	if (impact)
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, GetActorLocation(), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f));
+	if (impactSound)
+		UGameplayStatics::SpawnSoundAtLocation(GetWorld(), impactSound, GetActorLocation(), FRotator::ZeroRotator, impactVolume, impactPitch, 0.0f, impactSound->AttenuationSettings);
+
 	explosionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	GetWorld()->GetTimerManager().SetTimer(destroyTimeHandle, this, &ABloodTimeBomb::DestroyProjectile, 0.1f, false);
 	if (playerController && cameraShake)

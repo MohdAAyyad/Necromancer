@@ -29,6 +29,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Quest")
 		TArray<ANPC*> questNPCs; //The NPCs related to the quest should be destroyed
+	UPROPERTY(EditAnywhere, Category = "Music")
+		int musicIndex;
 
 	void OverlapWithPlayer
 	(UPrimitiveComponent* overlappedComponent_,
@@ -37,5 +39,7 @@ protected:
 		int32 otherBodyIndex_,
 		bool bFromSweep_,
 		const FHitResult &sweepResult_) override;
+
+	void ResetNPCDialogue() override;
 	
 };

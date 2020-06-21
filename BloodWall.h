@@ -24,7 +24,7 @@ protected:
 	FVector currentLocation;
 
 public:
-	void TakeDamage(float damage_) override;
+	void PropTakeDamage(float damage_) override;
 
 	void Interact() override {} ; //Interact with the object
 	void Interact(float& value_, bool bp_) override {} ;

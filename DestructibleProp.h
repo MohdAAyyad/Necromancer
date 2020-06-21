@@ -9,6 +9,8 @@
 #include "Components/BoxComponent.h"
 #include "DestructibleComponent.h"
 #include "TimerManager.h"
+#include "Sound/SoundBase.h"
+#include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "DestructibleProp.generated.h"
 
 UCLASS()
@@ -36,6 +38,13 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Stats")
 		float hp;
 
+	UPROPERTY(EditAnywhere, Category = "Sound")
+		USoundBase* destructionSound;
+	UPROPERTY(EditAnywhere, Category = "Sound")
+		float volume;
+	UPROPERTY(EditAnywhere, Category = "Sound")
+		float pitch;
+
 	FTimerHandle timeToDestroyHandle;
 	void DelayedDestroy();
 
@@ -43,6 +52,6 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	virtual void TakeDamage(float damage_);
+	virtual void PropTakeDamage(float damage_);
 
 };

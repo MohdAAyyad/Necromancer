@@ -5,6 +5,7 @@
 #include "HUD/PlayerUIController.h"
 #include "NPC/NPC.h"
 #include "TimerManager.h"
+#include "NecromancerCharacter.h"
 
 // Sets default values for this component's properties
 UDialogueHandle::UDialogueHandle()
@@ -30,6 +31,7 @@ void UDialogueHandle::SetNextDialogue()
 {
 	if (npc)
 	{
+		//UE_LOG(LogTemp, Warning, TEXT("We have NPC"));
 		npc->GetNextLineAndName(nextName, nextDialogue);
 		if(uictrl)
 			uictrl->SetDialogueName(nextName);
@@ -56,6 +58,11 @@ void UDialogueHandle::UpdateDialogueUI()
 void UDialogueHandle::SetUICTRL(UPlayerUIController* uictrl_)
 {
 	uictrl = uictrl_;
+}
+
+void UDialogueHandle::SetOwnerPlayer(ANecromancerCharacter* necro_)
+{
+	necro = necro_;
 }
 
 void UDialogueHandle::ReadNextLine()
@@ -90,11 +97,16 @@ void UDialogueHandle::ReadNextLine()
 
 void UDialogueHandle::ProcessInput()
 {
+	//UE_LOG(LogTemp, Warning, TEXT("Inside Process input"));
 	//If within range of NPC, initiate dialogue
 	if (bWithinRangeOfAnNPC)
 	{
-		if(!bEngagedInADialogue)
+		//UE_LOG(LogTemp, Warning, TEXT("Within range of NPC"));
+
+		if (!bEngagedInADialogue)
 			bEngagedInADialogue = true;
+		if (necro)
+			necro->FlipAimState(); //Flip the aim state so that if the player initiates the dialogue while aiming, they leave the aim state. If they not aiming, nothing will happen
 
 		if (!displayingDialogue)
 		{
@@ -128,6 +140,7 @@ void  UDialogueHandle::DialogueOverlap
 		{
 			//then flip the bWithinRangeOfAnNPC
 			bWithinRangeOfAnNPC = true;
+			npc->SetWithinRangeOfPlayer(true);
 		}
 	}
 }
@@ -140,7 +153,6 @@ void UDialogueHandle::EndDialogueOverlap
 {
 	if (otherActor_ != nullptr && otherComp_ != nullptr)
 	{
-		//TODO 
 		npc = Cast<ANPC>(otherActor_);
 		if (npc)
 		{
@@ -148,6 +160,7 @@ void UDialogueHandle::EndDialogueOverlap
 			bWithinRangeOfAnNPC = false;
 			bEngagedInADialogue = false;
 			displayingDialogue = false;
+			npc->SetWithinRangeOfPlayer(false);
 			npc = nullptr;
 		}
 	}

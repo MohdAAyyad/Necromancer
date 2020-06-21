@@ -15,6 +15,7 @@
 #include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "Animation/Summon/SummonAnimInstance.h"
 #include "Components/CapsuleComponent.h"
+#include "Sound/SoundBase.h"
 #include "SummonBase.generated.h"
 
 UCLASS()
@@ -54,7 +55,7 @@ protected:
 	AEnemyBase* target;
 
 	FTimerHandle dieTimer;
-	float timeToDie = 40.0f;;
+	float timeToDie = 20.0f;
 
 	FTimerHandle attackTimer;
 	float timeToDisableAttackHitBox = 0.3f;
@@ -89,6 +90,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Impact")
 		UParticleSystem* impact;
+	UPROPERTY(EditAnywhere, Category = "Impact")
+		USoundBase* meleeImpactSound;
+	UPROPERTY(EditAnywhere, Category = "Impact")
+		float meleeImpactVolume;
+	UPROPERTY(EditAnywhere, Category = "Impact")
+		float meleeImpactPitch;
 
 	UFUNCTION()
 		virtual void OnSeeEnemy(APawn* pawn_);

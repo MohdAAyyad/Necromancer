@@ -14,6 +14,8 @@
 #include "GameFramework/PlayerController.h"
 #include "PlayerCameraShake.h"
 #include "TimerManager.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 #include "AimProjectile.generated.h"
 
 UCLASS()
@@ -42,6 +44,7 @@ public:
 	void UpdateVelocity(FVector vel_);
 
 	void SetControllerAndCameraShake(APlayerController* playerController_, TSubclassOf<UPlayerCameraShake> cameraShake_);
+	bool bBeingAbsorbed; //Turned to true when crypto absorbs a projectiles. Makes sure the projectile doesn't damage the enemy
 protected:
 
 	FTimerHandle timeHandleToGetReallySmall;
@@ -57,6 +60,18 @@ protected:
 		UParticleSystemComponent* particles;
 	UPROPERTY(EditAnywhere, Category = "Impact")
 		UParticleSystem* impact;
+	UPROPERTY(EditAnywhere, Category = "Impact")
+		USoundBase* impactSound;
+	UPROPERTY(EditAnywhere, Category = "Impact")
+		float impactVolume;
+	UPROPERTY(EditAnywhere, Category = "Impact")
+		float impactPitch;
+	UPROPERTY(EditAnywhere, Category = "Spawn")
+		UAudioComponent* audioComponent;
+	UPROPERTY(EditAnywhere, Category = "Spawn")
+		USoundBase* spawnSound;
+	UPROPERTY(EditAnywhere, Category = "Spawn")
+		bool bPlaySpawnSoundOnBeginPlay; //We need this variable as enemyprojectiles inherits from this class and doesn't play the spawn sound on beginplay
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		UMaterialInterface* decalMaterial;
 
@@ -70,7 +85,7 @@ protected:
 	//Filled by the player code when the proj is spawned
 	APlayerController* playerController;
 	TSubclassOf<UPlayerCameraShake> cameraShake;
-	bool bBeingAbsorbed; //Turned to true when crypto absorbs a projectiles. Makes sure the projectile doesn't damage the enemy
+	
 
 	UFUNCTION()
 		virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent,

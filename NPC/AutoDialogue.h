@@ -15,8 +15,8 @@ class NECROMANCER_API AAutoDialogue : public ANPC
 	GENERATED_BODY()
 	
 protected:
-
-	void BeginPlay() override;
+	AAutoDialogue();
+	virtual void BeginPlay() override;
 	UFUNCTION()
 		virtual void OverlapWithPlayer
 		(UPrimitiveComponent* overlappedComponent_,
@@ -27,5 +27,5 @@ protected:
 			const FHitResult &sweepResult_);
 
 public:
-	void ResetNPCDialogue() override;
+	virtual void ResetNPCDialogue() override;
 };

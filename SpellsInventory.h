@@ -62,7 +62,11 @@ public:
 
 	bool IsAimSpellUnlocked(EAimSpells spell_);
 	bool IsBloodSpellUnlocked(EBloodSpells spell_);
+	bool IsBloodSpellLockedBehindAQuest(EBloodSpells spell_);
 	bool IsInnateSpellUnlocked(EInnateSpells spell_);
+
+	void ResetInventory();
+
 private:
 	SpellsInventory();
 	static TUniquePtr<SpellsInventory, TDefaultDelete<SpellsInventory>> instance;
@@ -75,7 +79,8 @@ private:
 	TArray<EAimSpells> aimSpells; //Equipped
 	TArray<EAimSpells> unlockedAimSpells; //Unlocked
 	TArray<EBloodSpells> bloodSpells; //Equipped
-	TArray<EBloodSpells> unlockedBloodSpells; //Equipped
+	TArray<EBloodSpells> unlockedBloodSpells; //Unlocked
+	TArray<EBloodSpells> questBloodSpells; //Locked behind a quest
 	EInnateSpells currentInnateSpell; //Only one innate spell can be equipped at a time
 	TArray<EInnateSpells> unlockedInnateSpells;
 

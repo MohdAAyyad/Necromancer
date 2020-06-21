@@ -83,7 +83,7 @@ ANecromancerCharacter::ANecromancerCharacter()
 	spellBaseDamage = 0.0f;
     lineCastLength = 1500.0f;
 	dashDistance = 1000.0f;
-	dashTime = 0.7495f;
+	dashTime = 0.5f;
 
 	currentAimSpell = EAimSpells::AIMNONE;
 	currentBloodSpell = EBloodSpells::BLOODNONE;
@@ -99,13 +99,13 @@ ANecromancerCharacter::ANecromancerCharacter()
 	bloodSpellLocation = FVector::ZeroVector;
 	enemy = nullptr;
 	GetCharacterMovement()->MaxWalkSpeed = 900.0f;
+
+	timeUntilCanBeHitAgain = 1.0f;
 }
 
 void ANecromancerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	playerController = GetWorld()->GetFirstPlayerController();
-	hud = Cast<APlayerHUD>(playerController->GetHUD());
 
 //	if (hud)
 		//hud->SetUICTRL(uictrl);
@@ -141,6 +141,9 @@ void ANecromancerCharacter::BeginPlay()
 		dialogueCollisionBox->OnComponentBeginOverlap.AddDynamic(dialogueHandle, &UDialogueHandle::DialogueOverlap);
 		dialogueCollisionBox->OnComponentEndOverlap.AddDynamic(dialogueHandle, &UDialogueHandle::EndDialogueOverlap);
 	}
+
+	playerController = GetWorld()->GetFirstPlayerController();
+	hud = Cast<APlayerHUD>(playerController->GetHUD());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -165,7 +168,7 @@ void ANecromancerCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 	//Custom
 
 	PlayerInputComponent->BindAction("Aim", IE_Pressed, this,&ANecromancerCharacter::FlipAimState);
-	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ANecromancerCharacter::FlipAimState);
+	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ANecromancerCharacter::ExitAim);
 
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ANecromancerCharacter::AimInteract);
 	PlayerInputComponent->BindAction("Heal", IE_Pressed, this, &ANecromancerCharacter::AimInteractHeal);
@@ -264,48 +267,59 @@ void ANecromancerCharacter::Tick(float deltaTime_)
 
 void ANecromancerCharacter::TurnAtRate(float Rate)
 {
-
-	// calculate delta for this frame from the rate information
-	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+	if (currentState != EPlayerState::DEATH)
+	{
+		// calculate delta for this frame from the rate information
+		AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+	}
 }
 
 void ANecromancerCharacter::LookUpAtRate(float Rate)
 {
-	// calculate delta for this frame from the rate information
-	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+	if (currentState != EPlayerState::DEATH)
+	{
+		// calculate delta for this frame from the rate information
+		AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+	}
 }
 
 void ANecromancerCharacter::MoveForward(float Value)
 {
-	if (!bCastingSpell && !dialogueHandle->IsInDialogue())
+	if (currentState != EPlayerState::DEATH)
 	{
-		if ((Controller != NULL) && (Value != 0.0f) && currentState != EPlayerState::HIT)
+		if (!bCastingSpell && !dialogueHandle->IsInDialogue())
 		{
-			// find out which way is forward
-			const FRotator Rotation = Controller->GetControlRotation();
-			const FRotator YawRotation(0, Rotation.Yaw, 0);
+			if ((Controller != NULL) && (Value != 0.0f) && currentState != EPlayerState::HIT)
+			{
+				// find out which way is forward
+				const FRotator Rotation = Controller->GetControlRotation();
+				const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-			// get forward vector
-			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-			AddMovementInput(Direction, Value);
+				// get forward vector
+				const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+				AddMovementInput(Direction, Value);
+			}
 		}
 	}
 }
 
 void ANecromancerCharacter::MoveRight(float Value)
 {
-	if (!bCastingSpell && !dialogueHandle->IsInDialogue())
+	if (currentState != EPlayerState::DEATH)
 	{
-		if ((Controller != NULL) && (Value != 0.0f) && currentState != EPlayerState::HIT)
+		if (!bCastingSpell && !dialogueHandle->IsInDialogue())
 		{
-			// find out which way is right
-			const FRotator Rotation = Controller->GetControlRotation();
-			const FRotator YawRotation(0, Rotation.Yaw, 0);
+			if ((Controller != NULL) && (Value != 0.0f) && currentState != EPlayerState::HIT)
+			{
+				// find out which way is right
+				const FRotator Rotation = Controller->GetControlRotation();
+				const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-			// get right vector 
-			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-			// add movement in that direction
-			AddMovementInput(Direction, Value);
+				// get right vector 
+				const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+				// add movement in that direction
+				AddMovementInput(Direction, Value);
+			}
 		}
 	}
 }
@@ -320,43 +334,74 @@ void ANecromancerCharacter::MoveRight(float Value)
 
 void ANecromancerCharacter::FlipAimState()
 {
-	if (bAim) //Exit aim mode
+	if (currentState != EPlayerState::DEATH && currentState != EPlayerState::DASH)
 	{
-		if (hud)
+		if (bAim) //Exit aim mode
 		{
-			hud->bDrawing = false;
-			hud->aimingAtIdle();
+			if (hud)
+			{
+				hud->bDrawing = false;
+				hud->aimingAtIdle();
+			}
+			bAim = false;
+			FollowCamera->FieldOfView = FMath::Lerp(FollowCamera->FieldOfView, 90.0f, 1.0f);
+			currentState = EPlayerState::IDLE;
+			animInstance->banimAimShoot = false;
+			bUseControllerRotationYaw = false;
+			aimPartilces->DeactivateSystem();
+			if (animInstance)
+				animInstance->baimMode = false;
+			GetCharacterMovement()->MaxWalkSpeed = 900.0f;
+			interactable = nullptr;  //Reset interactable
+			bAimingAtABloodPool = false; //Reset bAimingAtABloodPool
+			bAimingAtEnemy = false;
+			bCastingSpell = false;
 		}
-		bAim = false;
-		FollowCamera->FieldOfView = FMath::Lerp(FollowCamera->FieldOfView, 90.0f, 1.0f);
-		currentState = EPlayerState::IDLE;
-		animInstance->banimAimShoot = false;
-		bUseControllerRotationYaw = false;
-		aimPartilces->DeactivateSystem();
-		if (animInstance)
-			animInstance->baimMode = false;
-		GetCharacterMovement()->MaxWalkSpeed = 900.0f;
-		interactable = nullptr;  //Reset interactable
-		bAimingAtABloodPool = false; //Reset bAimingAtABloodPool
-		bAimingAtEnemy = false;
-		bCastingSpell = false;
+		else if (!dialogueHandle->IsInDialogue()) //Enter aim mode if you're not engaged in a dialogue
+		{
+			if (hud)
+				hud->bDrawing = true;
+			bAim = true;
+			GetController()->SetControlRotation(FollowCamera->GetComponentRotation());
+			FollowCamera->FieldOfView = FMath::Lerp(FollowCamera->FieldOfView, 60.0f, 1.0f);
+			currentState = EPlayerState::AIM;
+			bUseControllerRotationYaw = true;
+			aimPartilces->ActivateSystem(true);
+			if (animInstance)
+			{
+				animInstance->baimMode = true;
+				animInstance->ResetSpellAnimation(); //Reset all the spell booleans
+			}
+			GetCharacterMovement()->MaxWalkSpeed = 100.0f;
+		}
 	}
-	else //Enter aim mode
+}
+
+void ANecromancerCharacter::ExitAim()
+{
+	if (currentState != EPlayerState::DEATH && currentState != EPlayerState::DASH)
 	{
-		if (hud)
-			hud->bDrawing = true;
-		bAim = true;
-		GetController()->SetControlRotation(FollowCamera->GetComponentRotation());
-		FollowCamera->FieldOfView = FMath::Lerp(FollowCamera->FieldOfView, 60.0f, 1.0f);
-		currentState = EPlayerState::AIM;
-		bUseControllerRotationYaw = true;
-		aimPartilces->ActivateSystem(true);
-		if (animInstance)
+		if (bAim) //Exit aim mode
 		{
-			animInstance->baimMode = true;
-			animInstance->ResetSpellAnimation(); //Reset all the spell booleans
+			if (hud)
+			{
+				hud->bDrawing = false;
+				hud->aimingAtIdle();
+			}
+			bAim = false;
+			FollowCamera->FieldOfView = FMath::Lerp(FollowCamera->FieldOfView, 90.0f, 1.0f);
+			currentState = EPlayerState::IDLE;
+			animInstance->banimAimShoot = false;
+			bUseControllerRotationYaw = false;
+			aimPartilces->DeactivateSystem();
+			if (animInstance)
+				animInstance->baimMode = false;
+			GetCharacterMovement()->MaxWalkSpeed = 900.0f;
+			interactable = nullptr;  //Reset interactable
+			bAimingAtABloodPool = false; //Reset bAimingAtABloodPool
+			bAimingAtEnemy = false;
+			bCastingSpell = false;
 		}
-		GetCharacterMovement()->MaxWalkSpeed = 100.0f;
 	}
 }
 
@@ -387,6 +432,14 @@ void ANecromancerCharacter::AimInteractHeal() //Pressing interact heal
 	}
 }
 
+void ANecromancerCharacter::HealthDueToCheckpoint(float hp_, float bp_)
+{
+	if (stats)
+	{
+		stats->AddToHP(hp_);
+		stats->AddToBP(bp_);
+	}
+}
 #pragma endregion
 
 void ANecromancerCharacter::ConjurSpell()
@@ -498,7 +551,6 @@ void ANecromancerCharacter::CallBloodSpell(int index_)
 				if (SpellCheck::GetInstance()->CheckForBloodSpell(currentBloodSpell, stats->GetBP(), usingASpellSummon, spellBaseDamage, effect))
 				{
 					bCastingSpell = true;
-					UE_LOG(LogTemp, Warning, TEXT("SPELL CHECK SUCCESS"));
 					if (!corpseSpell)
 					{
 						switch (currentBloodSpell) //Yes, you can use blood spells using enemy bodies
@@ -557,8 +609,11 @@ void ANecromancerCharacter::ConjurBloodSpell()
 			{
 			case EBloodSpells::SERVEINDEATH:
 				if (enemy)
-					if(!enemy->bZombie) //Don't zombify a zombie
+					if (!enemy->bZombie) //Don't zombify a zombie
+					{
 						enemy->Zombify();
+						enemy->SetActorRotation((GetActorLocation() - enemy->GetActorLocation()).Rotation());
+					}
 				break;
 			case EBloodSpells::BLOODEXPLOSION:
 				if (enemy)
@@ -585,7 +640,7 @@ void ANecromancerCharacter::ConjurBloodSpell()
 #pragma region CallAndConjurInnateSpell
 void ANecromancerCharacter::CallInnateSpell()
 {
-	//No need to aim for innate spells
+	/*//No need to aim for innate spells
 	bool spellDamagesPlayer = false;
 	bool spellIncreasesHealth = false;
 	float spellBaseDamage = 0.0f;
@@ -612,7 +667,7 @@ void ANecromancerCharacter::CallInnateSpell()
 				//Play error sound
 			}
 		}
-	}
+	}*/
 }
 #pragma endregion
 
@@ -624,36 +679,53 @@ UPlayerUIController* ANecromancerCharacter::GetUIController() const
 #pragma endregion
 
 #pragma region CalculateDamage
-void ANecromancerCharacter::TakeDamage(float damage_)
+void ANecromancerCharacter::PlayerTakeDamage(float damage_)
 {
 	if (currentState != EPlayerState::DASH)
 	{
 		if(cameraShake && playerController)
 			playerController->PlayerCameraManager->PlayCameraShake(cameraShake, 0.5f);
-		stats->GetHP() -= damage_;
-		animInstance->bHit = true;
-		UE_LOG(LogTemp, Warning, TEXT("Player has taken damage %f"), damage_);
 
-		if (currentState != EPlayerState::HIT)
+		if (stats->GetHP() <= (0.2f * stats->GetMaxHP()))
+			damage_ *= 0.5f; //Halve the damage if the player's health is low
+
+		stats->GetHP() -= damage_;
+
+		if (!bCastingSpell && !animInstance->bHit && !bAim && bCanBeHitAgain)
 		{
-			prevState = currentState;
-			currentState = EPlayerState::HIT;
+			animInstance->bHit = true;
+			bCanBeHitAgain = false;
+			GetWorld()->GetTimerManager().SetTimer(timeUntilCanBeHitAgainHandle, this, &ANecromancerCharacter::CanBeHitAgain, timeUntilCanBeHitAgain, false);
+
+			if (currentState != EPlayerState::HIT)
+			{
+				prevState = currentState;
+				currentState = EPlayerState::HIT;
+			}
 		}
 		if (stats->GetHP() <= 0.5f)
 		{
 			stats->GetHP() = 0.0f;
 			//Death animation
-			//Death screen
-			
-			//Placeholder code
-			//TODO
-			//Should call a death function that changes the UI
-			//Destroy();
-			ANecromancerGameMode* gameMode = Cast<ANecromancerGameMode>(GetWorld()->GetAuthGameMode());
-			if (gameMode)
-				gameMode->RespawnPlayer();
+			if (animInstance)
+				animInstance->bDead = true;
+			if (bAim)
+				FlipAimState();
+			GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			currentState = EPlayerState::DEATH;
 		}
 	}
+}
+
+void ANecromancerCharacter::Death()
+{
+	//Called from animation
+	//Death screen
+	//if (hud)
+	//	hud->SwitchToDeathScreen();
+
+	if (uictrl)
+		uictrl->PauseGame();
 }
 
 
@@ -661,6 +733,11 @@ void ANecromancerCharacter::EndHit()
 {
 	if (currentState == EPlayerState::HIT)
 		currentState = prevState;
+}
+
+void ANecromancerCharacter::CanBeHitAgain()
+{
+	bCanBeHitAgain = true;
 }
 #pragma endregion
 
@@ -670,11 +747,14 @@ void ANecromancerCharacter::EndHit()
 //Dash
 void ANecromancerCharacter::Dash()
 {
-	if (GetCharacterMovement()->Velocity.Size() > 0.0f && currentState != EPlayerState::DASH)
+	if (currentState != EPlayerState::DEATH && !bAim)
 	{
-		//Call Animation which will activate a particle system
-		animInstance->bDash = true;
-		currentState = EPlayerState::DASH;
+		if (GetCharacterMovement()->Velocity.Size() > 0.0f && currentState != EPlayerState::DASH)
+		{
+			//Call Animation which will activate a particle system
+			animInstance->bDash = true;
+			currentState = EPlayerState::DASH;
+		}
 	}
 }
 
@@ -700,36 +780,44 @@ void ANecromancerCharacter::EndDash()
 
 void ANecromancerCharacter::CallAimSpell0()
 {
-	CallAimSpell(0);
+	if(!bCastingSpell)
+		CallAimSpell(0);
 }
 void ANecromancerCharacter::CallAimSpell1()
 {
-	CallAimSpell(1);
+	if (!bCastingSpell)
+		CallAimSpell(1);
 }
 void ANecromancerCharacter::CallAimSpell2()
 {
-	CallAimSpell(2);
+	if (!bCastingSpell)
+		CallAimSpell(2);
 }
 void ANecromancerCharacter::CallAimSpell3()
 {
-	CallAimSpell(3);
+	if (!bCastingSpell)
+		CallAimSpell(3);
 }
 
 void ANecromancerCharacter::CallBloodSpell0()
 {
-	CallBloodSpell(0);
+	if (!bCastingSpell)
+		CallBloodSpell(0);
 }
 void ANecromancerCharacter::CallBloodSpell1()
 {
-	CallBloodSpell(1);
+	if (!bCastingSpell)
+		CallBloodSpell(1);
 }
 void ANecromancerCharacter::CallBloodSpell2()
 {
-	CallBloodSpell(2);
+	if (!bCastingSpell)
+		CallBloodSpell(2);
 }
 void ANecromancerCharacter::CallBloodSpell3()
 {
-	CallBloodSpell(3);
+	if (!bCastingSpell)
+		CallBloodSpell(3);
 }
 
 
@@ -791,6 +879,8 @@ void ANecromancerCharacter::InitiateAutoDialogue()
 {
 	if (dialogueHandle)
 		dialogueHandle->ProcessInput();
+	if(dialogueHandle->IsInDialogue())
+		FlipAimState(); //If the player approaches the auto dialogue box in aim mode, flip the aim automatically
 }
 #pragma endregion
 

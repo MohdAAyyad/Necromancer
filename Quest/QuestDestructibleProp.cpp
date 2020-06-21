@@ -10,11 +10,11 @@ AQuestDestructibleProp::AQuestDestructibleProp():ADestructibleProp()
 	questNPC = nullptr;
 }
 
-void AQuestDestructibleProp::TakeDamage(float damage_)
+void AQuestDestructibleProp::PropTakeDamage(float damage_)
 {
 	if (QuestManager::GetInstance()->GetQuestIndex(questName) != -1) //Don't get destroyed if we haven't got the quest yet
 	{
-		Super::TakeDamage(damage_);
+		Super::PropTakeDamage(damage_);
 		if (questNPC)
 			questNPC->QuestUpdate();
 		

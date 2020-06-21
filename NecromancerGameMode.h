@@ -23,11 +23,20 @@ protected:
 public:
 	ANecromancerGameMode();
 	void SetNewCheckpoint(FVector checkpointLoc_);
-	void RespawnPlayer();
+	UFUNCTION(BlueprintCallable)
+		void RespawnPlayer();
+	UFUNCTION(BlueprintCallable)
+		void BackToMainMenu();
 	void SetLevelName(FName level_);
+	void SwitchLevel();
 	FVector GetStartingPosition();
 	UFUNCTION(BlueprintCallable)
 		void NewGame();
+
+	UFUNCTION(BlueprintCallable)
+		void FadeOutMusic();
+	UFUNCTION(BlueprintCallable)
+		void DeathMusic();
 };
 
 

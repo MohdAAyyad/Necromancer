@@ -37,7 +37,7 @@ void ABloodWall::Tick(float deltaTime_)
 	}
 }
 
-void ABloodWall::TakeDamage(float damage_)
+void ABloodWall::PropTakeDamage(float damage_)
 {
 	if (hp > 0.5f)
 	{

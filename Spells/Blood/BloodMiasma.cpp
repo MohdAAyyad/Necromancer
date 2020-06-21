@@ -20,10 +20,6 @@ void ABloodMiasma::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 {
 	if (otherActor_ != nullptr && otherComp_ != nullptr && otherActor_ != this)
 	{
-		//UGameplayStatics::SpawnDecalAttached(decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetRootComponent(),NAME_None,sweepResult_.ImpactPoint,sweepResult_.Normal.Rotation());
-
-		//UGameplayStatics::SpawnDecalAtLocation(GetWorld(), decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetActorLocation(), sweepResult_.Normal.Rotation());
-
 		AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_);
 
 		if (enemy)
@@ -38,7 +34,7 @@ void ABloodMiasma::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			ADestructibleProp* prop = Cast<ADestructibleProp>(otherActor_);
 			if (prop)
 			{
-				prop->TakeDamage(200.0f);
+				prop->PropTakeDamage(10.0f);
 			}
 		}
 	}

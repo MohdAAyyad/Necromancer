@@ -40,5 +40,8 @@ protected:
 public:	
 	virtual void GetNextLineAndName(FString& name_, FString& line_);
 	virtual void ResetNPCDialogue();
+	virtual void SetWithinRangeOfPlayer(bool value_) { bWithinRangeOfPlayer = value_; };
 
+	UPROPERTY(BlueprintReadOnly)
+		bool bWithinRangeOfPlayer; //When true the NPC's UMG shows "Press C to talk" //Turned true by the player's dialogue handle
 };

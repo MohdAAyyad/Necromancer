@@ -7,6 +7,8 @@
 #include "Components/SphereComponent.h"
 #include "Engine/Classes/Particles/ParticleSystemComponent.h"
 #include "TimerManager.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 #include "Checkpoint.generated.h"
 
 UCLASS()
@@ -29,6 +31,16 @@ protected:
 		UParticleSystemComponent* inactiveParticles;
 	UPROPERTY(EditAnywhere, Category = "Particles")
 		UParticleSystemComponent* activeParticles;
+
+	UPROPERTY(EditAnywhere, Category = "Stats")
+		float hpToRestore;
+	UPROPERTY(EditAnywhere, Category = "Stats")
+		float bpToRestore;
+
+	UPROPERTY(EditAnywhere, Category = "AudioComponent")
+		UAudioComponent* audioComponent;
+	UPROPERTY(EditAnywhere, Category = "AudioComponent")
+		USoundBase* sound;
 
 	FTimerHandle timerHandleToDisableP1;
 	float timeToDisableP1;

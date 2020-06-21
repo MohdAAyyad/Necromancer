@@ -18,6 +18,10 @@ void APlayerHUD::BeginPlay()
 	{
 		inGameWidget = CreateWidget<UUserWidget>(GetWorld(), HUDWdiget[1]);
 	}
+	if (HUDWdiget[2] != nullptr)
+	{
+		deathWidget = CreateWidget<UUserWidget>(GetWorld(), HUDWdiget[2]);
+	}
 }
 
 void APlayerHUD::DrawHUD()
@@ -47,4 +51,10 @@ void APlayerHUD::SwitchToInGameWidget()
 
 		inGameWidget->AddToViewport();
 	}
+}
+
+void APlayerHUD::SwitchToDeathScreen()
+{
+	if (deathWidget)
+		deathWidget->AddToViewport();
 }

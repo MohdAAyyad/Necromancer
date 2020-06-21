@@ -33,6 +33,8 @@ public:
 
 	void AddToBaseDamage(float amount_);
 	void AddToBaseMagicDamage(float amount_);
+	void AddToHP(float value_);
+	void AddToBP(float value_);
 
 protected:
 	// Called when the game starts

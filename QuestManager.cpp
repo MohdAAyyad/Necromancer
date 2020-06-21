@@ -3,6 +3,7 @@
 
 #include "QuestManager.h"
 #include "HUD/PlayerUIController.h"
+#include "EXPManager.h"
 
 TUniquePtr<QuestManager, TDefaultDelete<QuestManager>> QuestManager::instance = nullptr;
 
@@ -24,7 +25,8 @@ QuestManager::~QuestManager()
 void QuestManager::RegisterUICTRL(UPlayerUIController* uictrl_)
 {
 	uictrl = uictrl_;
-	AddQuest("No longer safe", "The Ravens had scouts disguised as factory workers.\nTheir last transmission indicated that \nsoldiers from the Steel Army were seen in the vicinity.");
+	//if(!questsNames.Contains("No longer safe"))
+		//AddQuest("No longer safe", "The Ravens had scouts disguised as factory workers.\nTheir last transmission indicated that \nsoldiers from the Steel Army were seen in the vicinity.");
 }
 
 void QuestManager::AddQuest(FString name_, FString description_)
@@ -113,7 +115,7 @@ void QuestManager::CompleteQuest(FString name_, FString description_)
 	questsDescriptions[index] += description_;
 	if (uictrl)
 		uictrl->PlayCompletedQuestPrompt();
-
+	RewardEXP(name_);
 	FindNextInCompleteQuest(); //Update the active quest index
 }
 
@@ -161,4 +163,28 @@ void QuestManager::FindNextInCompleteQuest()
 
 	if (uictrl)
 		uictrl->SetShownQuest(activeQuestIndex); //Update the UI
+}
+
+void QuestManager::RewardEXP(FString name_)
+{
+	if (name_ == "No longer safe")
+	{
+		EXPManager::GetInstance()->UpdateCurrentEXP(2000);
+	}
+	else if (name_ == "A son's hope. A devil's advocate. ")
+	{
+		EXPManager::GetInstance()->UpdateCurrentEXP(1000);
+	}
+}
+
+void QuestManager::ResetQuest()
+{
+	if(questsNames.Num()>0)
+		questsNames.Empty();
+	if(questsDescriptions.Num()>0)
+		questsDescriptions.Empty();
+	if(completedQuestsIndexes.Num()>0)
+		completedQuestsIndexes.Empty();
+
+	activeQuestIndex = 0;
 }

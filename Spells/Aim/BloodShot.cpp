@@ -19,7 +19,10 @@ void ABloodShot::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 {
 	if (otherActor_ != nullptr && otherComp_ != nullptr && otherActor_ != this)
 	{
-		UGameplayStatics::SpawnDecalAtLocation(GetWorld(), decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetActorLocation(), sweepResult_.Normal.Rotation());
+		if (impact)
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(2.0f, 2.0f, 2.0f));
+		if (impactSound)
+			UGameplayStatics::SpawnSoundAtLocation(GetWorld(), impactSound, otherActor_->GetActorLocation(), FRotator::ZeroRotator, impactVolume, impactPitch, 0.0f, impactSound->AttenuationSettings);
 
 		AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_);
 
@@ -38,7 +41,7 @@ void ABloodShot::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			ADestructibleProp* prop = Cast<ADestructibleProp>(otherActor_);
 			if (prop)
 			{
-				prop->TakeDamage(damage);
+				prop->PropTakeDamage(damage);
 			}
 		}
 	}

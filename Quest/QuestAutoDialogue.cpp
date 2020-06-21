@@ -4,10 +4,12 @@
 #include "QuestAutoDialogue.h"
 #include "../NecromancerCharacter.h"
 #include "../QuestManager.h"
+#include "../Audio/MusicManager.h"
 
 AQuestAutoDialogue::AQuestAutoDialogue()
 {
 	endQuestDescription = "Although Leah is on a quest to obtain higher powers in hopes\nof achieving her revenge, she does not allow herself\nto go down the path of a tyrant.\nDespite his promises of a special spell, Leah denied Kay-Hen\nhis request and freed the prisoner instead.";
+	musicIndex = -1;
 }
 
 void AQuestAutoDialogue::BeginPlay()
@@ -36,7 +38,11 @@ void AQuestAutoDialogue::OverlapWithPlayer
 		ANecromancerCharacter* player = Cast<ANecromancerCharacter>(otherActor_); //Check if you collide with the player
 
 		if (player)
+		{
 			player->InitiateAutoDialogue(); //Initiate the conversation
+			if (musicIndex >= 0)
+				MusicManager::GetInstance()->SwtichMusic(musicIndex);
+		}
 
 		QuestManager::GetInstance()->CompleteQuest(questName, endQuestDescription); //End the quest
 
@@ -45,4 +51,12 @@ void AQuestAutoDialogue::OverlapWithPlayer
 			questNPCs[i]->Destroy(); //Destory the NPCs related to the quest
 		}
 	}
+}
+
+void AQuestAutoDialogue::ResetNPCDialogue()
+{
+	if (musicIndex >= 0)
+		MusicManager::GetInstance()->SwtichMusic(1); //If we played a track for the quest, return to the regular music track
+
+	Super::ResetNPCDialogue();
 }

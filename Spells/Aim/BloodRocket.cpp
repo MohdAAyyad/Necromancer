@@ -23,7 +23,11 @@ ABloodRocket::ABloodRocket(): AAimProjectile()
 void ABloodRocket::BeginPlay()
 {
 	Super::BeginPlay();
-	explosionSphere->OnComponentBeginOverlap.AddDynamic(this, &ABloodRocket::OnExplosionOverlap);
+	if (explosionSphere)
+	{
+		explosionSphere->OnComponentBeginOverlap.AddDynamic(this, &ABloodRocket::OnExplosionOverlap);
+		explosionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 }
 
 void ABloodRocket::OnOverlap(UPrimitiveComponent* overlappedComponent_,
@@ -38,7 +42,11 @@ void ABloodRocket::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 		UE_LOG(LogTemp, Warning, TEXT("Rocket damaged enemy"));
 		//Doesn't matter what you hit, explode anyway
 		if (impact)
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f));
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(5.0f, 5.0f, 5.0f));
+
+		if (impactSound)
+			UGameplayStatics::SpawnSoundAtLocation(GetWorld(), impactSound, otherActor_->GetActorLocation(), FRotator::ZeroRotator, impactVolume, impactPitch, 0.0f, impactSound->AttenuationSettings);
+
 		explosionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		GetWorld()->GetTimerManager().SetTimer(destroyTimeHandle, this, &ABloodRocket::DestroyProjectile, destroyDelay, false);
 
@@ -60,7 +68,7 @@ void ABloodRocket::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			ADestructibleProp* prop = Cast<ADestructibleProp>(otherActor_);
 			if (prop)
 			{
-				prop->TakeDamage(damage);
+				prop->PropTakeDamage(damage);
 				sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			}
 		}
@@ -87,7 +95,7 @@ void ABloodRocket::OnExplosionOverlap(UPrimitiveComponent* overlappedComponent_,
 			ADestructibleProp* prop = Cast<ADestructibleProp>(otherActor_);
 			if (prop)
 			{
-				prop->TakeDamage(damage);
+				prop->PropTakeDamage(damage);
 				sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			}
 		}

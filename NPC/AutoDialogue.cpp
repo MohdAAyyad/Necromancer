@@ -5,6 +5,10 @@
 #include "../NecromancerCharacter.h"
 #include "Components/CapsuleComponent.h"
 
+AAutoDialogue::AAutoDialogue()
+{
+
+}
 void AAutoDialogue::BeginPlay()
 {
 	Super::BeginPlay();

@@ -16,7 +16,7 @@ class NECROMANCER_API AQuestDestructibleProp : public ADestructibleProp
 	GENERATED_BODY()
 public:
 	AQuestDestructibleProp();
-	void TakeDamage(float damage_) override;
+	void PropTakeDamage(float damage_);
 protected:
 	UPROPERTY(EditAnywhere, Category="Prisoner")
 		AQuestNPC* questNPC;

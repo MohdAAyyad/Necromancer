@@ -4,6 +4,7 @@
 #include "PrisonerQuestNPC.h"
 #include "../AimProjectile.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "../SpellsInventory.h"
 
 APrisonerQuestNPC::APrisonerQuestNPC():AQuestNPC()
 {
@@ -47,6 +48,18 @@ void APrisonerQuestNPC::GetNextLineAndName(FString& name_, FString& line_)
 	else
 	{
 		line_ = "endl"; //Otherwise, don't initiate the conversation at all
+	}
+}
+
+void APrisonerQuestNPC::SetWithinRangeOfPlayer(bool value_)
+{
+	if (QuestManager::GetInstance()->GetQuestIndex(questName) != -1 && !bDead) //Press C to talk should only appear if we have obtained the quest and the prisoner is alive
+	{
+		bWithinRangeOfPlayer = value_;
+	}
+	else
+	{
+		bWithinRangeOfPlayer = false;
 	}
 }
 
@@ -108,25 +121,31 @@ void APrisonerQuestNPC::DestinationOverlap
 	if (otherActor_ != nullptr && otherActor_ != this && otherComp_ != nullptr)
 	{
 		//Reached the destination, end the zombification
-		AQuestNPC* destination = Cast<AQuestNPC>(otherActor_);
-		if (destination)
+		AQuestNPC* destination_ = Cast<AQuestNPC>(otherActor_);
+		if (destination_)
 		{
-			if(!QuestManager::GetInstance()->IsQuestCompleted(questName))
+			if (!QuestManager::GetInstance()->IsQuestCompleted(questName)) //Complete Quest and add spell
+			{
 				QuestManager::GetInstance()->CompleteQuest(questName, endQuestDescription);
+				SpellsInventory::GetInstance()->UnlockBloodSpell(EBloodSpells::BLOODEXPLOSION); //Unlock the quest that was hidden behind the "kill prisoner" route
+			}
 			EndZombify();
 		}
 		else
 		{
-			//If the player shoots at you, die
-			AAimProjectile* proj = Cast<AAimProjectile>(otherActor_);
-
-			if (proj && !bDead)
+			if (!bDead)
 			{
-				bDead = true;
-				proj->Destroy();
-				if (autoDialogue)
-					autoDialogue->Destroy();
-				Death();
+				//If the player shoots at you, die
+				AAimProjectile* proj = Cast<AAimProjectile>(otherActor_);
+
+				if (proj)
+				{
+					bDead = true;
+					proj->Destroy();
+					if (autoDialogue)
+						autoDialogue->Destroy();
+					Death();
+				}
 			}
 		}
 	}

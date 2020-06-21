@@ -31,7 +31,7 @@ void ASummonBase::BeginPlay()
 	if (sense)
 	{
 		sense->OnSeePawn.AddDynamic(this, &ASummonBase::OnSeeEnemy);
-		UE_LOG(LogTemp, Warning, TEXT("Sense bound"));
+		//UE_LOG(LogTemp, Warning, TEXT("Sense bound"));
 	}
 	if (attackHitBox)
 	{
@@ -55,7 +55,7 @@ void ASummonBase::OnSeeEnemy(APawn* pawn_)
 	{
 		 if (target && aiController)
 		{
-			 UE_LOG(LogTemp, Warning, TEXT("We already have a target...Apparently %s"), *target->GetName());
+			 //UE_LOG(LogTemp, Warning, TEXT("We already have a target...Apparently %s"), *target->GetName());
 			if (target->IsDead() || target->bZombie) //If the target is dead or a zombie, look for another
 			{
 				 target = nullptr;
@@ -72,7 +72,7 @@ void ASummonBase::OnSeeEnemy(APawn* pawn_)
 		else if (!target)
 		{
 			target = Cast<AEnemyBase>(pawn_);
-			UE_LOG(LogTemp, Warning, TEXT("Enemy has been seen"));
+			//UE_LOG(LogTemp, Warning, TEXT("Enemy has been seen"));
 		}
 
 	}
@@ -88,7 +88,7 @@ void ASummonBase::SummonTakeDamage(float damage_)
 }
 void ASummonBase::Attack()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Attack"));
+	//UE_LOG(LogTemp, Warning, TEXT("Attack"));
 	//Call Attack Animation
 	if (animInstance)
 	{
@@ -138,7 +138,7 @@ void ASummonBase::EndReload()
 	{
 		aiController->SetReload(false);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("ReloadEnd"));
+	//UE_LOG(LogTemp, Warning, TEXT("ReloadEnd"));
 }
 
 void ASummonBase::OnAttackBoxOverlap(UPrimitiveComponent* overlappedComponent_,
@@ -162,6 +162,9 @@ void ASummonBase::OnAttackBoxOverlap(UPrimitiveComponent* overlappedComponent_,
 				enemy->TakeSpellDamageFromZombie(this, baseDamage * damageModifier);
 				if (impact)
 					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f));
+				if (meleeImpactSound)
+					UGameplayStatics::SpawnSoundAtLocation(GetWorld(), meleeImpactSound, otherActor_->GetActorLocation(), FRotator::ZeroRotator, meleeImpactVolume, meleeImpactPitch, 0.0f, meleeImpactSound->AttenuationSettings);
+
 
 			}
 		}
@@ -233,7 +236,7 @@ void ASummonBase::SetSummonLevel(int level_)
 void ASummonBase::ActivateSummon()
 {
 	bActive = true;
-	UE_LOG(LogTemp, Warning, TEXT("Active"));
+	//UE_LOG(LogTemp, Warning, TEXT("Active"));
 }
 
 void ASummonBase::DestroySummon()

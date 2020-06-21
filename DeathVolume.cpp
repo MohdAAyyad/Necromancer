@@ -37,7 +37,7 @@ void ADeathVolume::OnPlayerOverlap(UPrimitiveComponent* overlappedComponent_,
 		ANecromancerCharacter* player = Cast<ANecromancerCharacter>(otherActor_);
 		if (player)
 		{
-			player->TakeDamage(100000000.0f); //Kill the player
+			player->PlayerTakeDamage(100000000.0f); //Kill the player
 		}
 	}
 }

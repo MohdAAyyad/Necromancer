@@ -24,11 +24,7 @@ bool SpellCheck::CheckForAimSpell(const EAimSpells spell_, float& currentBP_, bo
 	if (currentBP_ >= cost) //Do we have enough BP?
 	{
 		currentBP_ -= cost;
-		//TODO
-	//update the variabls passed in by reference
-	//spellBaseDamage_ will be filled by the spell's base damage. In NecromancerCharacter.cpp this will be added to character magic stat which will be added to this file
 		increaseHP_ = bSpellIncreasesHealth;
-		//TODO
 		bSpellIncreasesHealth = false; //Reset variable
 
 		return true;
@@ -42,14 +38,14 @@ float SpellCheck::GetAimSpellCost(const EAimSpells spell_, float& spellBaseDamag
 	switch (spell_)
 	{
 	case EAimSpells::BLOODSHOT:
-		spellBaseDamage_ += 70.0f;
-		return 10.0f;
+		spellBaseDamage_ += 90.0f;
+		return 20.0f;
 	case EAimSpells::BLOODROCKET:
 		spellBaseDamage_ += 50.0f;
-		return 10.0f;
+		return 40.0f;
 	case EAimSpells::BLOODTIMEBOMB:
 		spellBaseDamage_ += 50.0f;
-		return 10.0f;
+		return 35.0f;
 	case EAimSpells::ISEEDEATH:
 		spellBaseDamage_ = 0.0f;
 		return 10.0f;
@@ -93,16 +89,16 @@ float SpellCheck::GetBloodSpellCost(const EBloodSpells spell_, float& spellBaseD
 		return 10.0f;
 	case EBloodSpells::SERVEINDEATH:
 		spellBaseDamage_ = 0;
-		return 10.0f;
+		return 25.0f;
 	case EBloodSpells::BLOODEXPLOSION:
-		spellBaseDamage_ += 50.0f;
-		return 10.0f;
+		spellBaseDamage_ += 70.0f;
+		return 35.0f;
 	case EBloodSpells::BLOODTORNADO:
-		spellBaseDamage_ += 200.0f;
-		return 10.0f;
+		spellBaseDamage_ += 150.0f;
+		return 120.0f;
 	case EBloodSpells::SUMMONSKELETON:	
 		bSpellIsASummon = true;
-		return 10.0f;
+		return 40.0f;
 		break;
 	default:
 		return 0.0f;

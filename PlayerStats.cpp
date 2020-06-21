@@ -13,10 +13,10 @@ UPlayerStats::UPlayerStats()
 	//TODO
 	//Get the data from the save file
 	//TODO
-	maxHP = 200.0f;
-	hp = 200.0f;
-	maxBP = 150.0f;
-	bp = 150.0f;
+	maxHP = 350.0f;
+	hp = 350.0f;
+	maxBP = 250.0f;
+	bp = 250.0f;
 	baseDamage = 20.0f;
 	baseMagicDamage = 20.0f;
 	// ...
@@ -56,6 +56,12 @@ float UPlayerStats::GetHPPercent()
 		return 1.0f;
 	return (hp / maxHP);
 }
+void UPlayerStats::AddToHP(float value_)
+{
+	hp += value_;
+	if (hp >= maxHP)
+		hp = maxHP;
+}
 
 void UPlayerStats::AddToMaxHP(float amount_) //Called from UI
 {
@@ -83,6 +89,12 @@ void UPlayerStats::AddToMaxBP(float amount_)//Called from UI
 	maxBP += amount_;
 	bp = maxBP; //Upgrading the max bp, refills the current bp
 } 
+void UPlayerStats::AddToBP(float value_)
+{
+	bp += value_;
+	if (bp >= maxBP)
+		bp = maxBP;
+}
 
 float UPlayerStats::GetBaseDamage()
 {

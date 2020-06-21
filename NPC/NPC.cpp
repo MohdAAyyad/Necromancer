@@ -14,6 +14,7 @@ ANPC::ANPC()
 	dialogueBox->SetCollisionProfileName("Dialogue");
 	dialogueBox->SetGenerateOverlapEvents(true);
 	dialogueBox->SetupAttachment(RootComponent);
+	bWithinRangeOfPlayer = false;
 }
 
 // Called when the game starts or when spawned

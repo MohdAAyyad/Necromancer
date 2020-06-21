@@ -47,3 +47,10 @@ bool EXPManager::UpdateCurrentEXP(int expToBeAdded_)
 	}
 	return false; //No level up
 }
+
+void EXPManager::ResetEXP()
+{
+	currentEXP = 0;
+	maxEXP = 200;
+	skillPoints = 0;
+}

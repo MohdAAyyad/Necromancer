@@ -68,6 +68,7 @@ void USpellConjuror::ConjurBloodSpell(EBloodSpells spell_, FVector spawnLocation
 			{
 				spawnLocation_.Z -= 200.0f;
 				spawnRotation_.Pitch = 0.0f;
+				spawnRotation_.Yaw += 180.0f; //Make sure the summon faces the player
 				ASummonBase* toBeSummoned = GetWorld()->SpawnActor<ASummonBase>(summons[index], spawnLocation_, spawnRotation_);
 				if (toBeSummoned)
 				{

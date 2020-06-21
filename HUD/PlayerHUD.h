@@ -30,11 +30,12 @@ private:
 		TArray<TSubclassOf<UUserWidget>> HUDWdiget;
 	UUserWidget* mainMenuWidget;
 	UUserWidget* inGameWidget;
+	UUserWidget* deathWidget;
+
 
 
 	UPROPERTY(EditAnywhere, Category = "Widgets")
 		UPlayerUMG* widgett;
-
 
 public:
 	virtual void DrawHUD() override;
@@ -44,6 +45,8 @@ public:
 	inline void aimingAtIdle(){ crosshairTexture = idleTexture; };
 	UFUNCTION(BlueprintCallable)
 		void SwitchToInGameWidget();
+	UFUNCTION(BlueprintCallable)
+		void SwitchToDeathScreen();
 
 
 

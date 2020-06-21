@@ -104,8 +104,11 @@ protected:
 	bool bAim;
 	EPlayerState currentState;
 	EPlayerState prevState;
-	void FlipAimState();
+public:
+	void FlipAimState(); //Public so that the dialogue can flip the aim state if the player enters a dialogue while aiming
+	void ExitAim(); 
 
+protected:
 	float lineCastLength;
 	FCollisionQueryParams colParams;
 	IInteractable* interactable;
@@ -168,6 +171,11 @@ protected:
 	float dashTime;
 	FTimerHandle dashTimeHandler;
 
+	bool bCanBeHitAgain; //Boolean mean to prevent stagerring
+	float timeUntilCanBeHitAgain;
+	FTimerHandle timeUntilCanBeHitAgainHandle;
+	void CanBeHitAgain();
+
 	//Spells
 	bool increaseHP;
 	bool usingASpellSummon;
@@ -201,9 +209,10 @@ protected:
 		void ConjurAimSpell();
 	UFUNCTION(BlueprintCallable)
 		void ConjurBloodSpell();
-
 	public:
-		void TakeDamage(float damage_);
+		void Death();
+	//-----
+		void PlayerTakeDamage(float damage_);
 
 		void MoveDueToDash(); //Called from animation
 		void EndDash();
@@ -227,5 +236,8 @@ protected:
 
 		public:
 			void InitiateAutoDialogue();
+			void HealthDueToCheckpoint(float hp_, float bp_);
+
+			
 
 };

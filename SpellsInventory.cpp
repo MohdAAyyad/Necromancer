@@ -16,10 +16,8 @@ SpellsInventory::SpellsInventory()
 	maxBloodSpellsCount = 4;
 	currentInnateSpell = EInnateSpells::INNATENONE;
 
-	UnlockBloodSpell(EBloodSpells::SUMMONSKELETON);
 	UnlockBloodSpell(EBloodSpells::SERVEINDEATH);
-	UnlockBloodSpell(EBloodSpells::BLOODTORNADO);
-	UnlockAimSpell(EAimSpells::BLOODROCKET);
+	UnlockAimSpell(EAimSpells::BLOODSHOT);
 }
 
 SpellsInventory::~SpellsInventory()
@@ -169,7 +167,11 @@ EBloodSpells SpellsInventory::GetEquippedBloodSpellForTexture(int index_)
 void SpellsInventory::UnlockBloodSpell(EBloodSpells spell_)
 {
 	if (!unlockedBloodSpells.Contains(spell_))
+	{
 		unlockedBloodSpells.Add(spell_);
+		if (questBloodSpells.Contains(spell_)) //If the spell was locked behind a quest, remove it from the quest spells array
+			questBloodSpells.Remove(spell_);
+	}
 }
 #pragma endregion
 
@@ -319,9 +321,33 @@ bool SpellsInventory::IsAimSpellUnlocked(EAimSpells spell_)
 }
 bool SpellsInventory::IsBloodSpellUnlocked(EBloodSpells spell_)
 {
-	return unlockedBloodSpells.Contains(spell_);
+	return (unlockedBloodSpells.Contains(spell_) && !questBloodSpells.Contains(spell_)); //If the spell is locked behind a quest, then the lock should not appear at all
+}
+bool SpellsInventory::IsBloodSpellLockedBehindAQuest(EBloodSpells spell_)
+{
+	return questBloodSpells.Contains(spell_);
 }
 bool SpellsInventory::IsInnateSpellUnlocked(EInnateSpells spell_)
 {
 	return unlockedInnateSpells.Contains(spell_);
+}
+
+
+void SpellsInventory::ResetInventory()
+{
+	if(aimSpells.Num()>0)
+		aimSpells.Empty();
+	if (unlockedAimSpells.Num() > 0)
+		unlockedAimSpells.Empty();
+	if (bloodSpells.Num() > 0)
+		bloodSpells.Empty();
+	if (unlockedBloodSpells.Num() > 0)
+		unlockedBloodSpells.Empty();
+	if (questBloodSpells.Num() > 0)
+		questBloodSpells.Empty();
+
+	UnlockBloodSpell(EBloodSpells::SERVEINDEATH);
+	UnlockAimSpell(EAimSpells::BLOODSHOT);
+
+	questBloodSpells.Push(EBloodSpells::BLOODEXPLOSION);
 }

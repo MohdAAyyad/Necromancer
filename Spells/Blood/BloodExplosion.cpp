@@ -6,9 +6,9 @@
 
 ABloodExplosion::ABloodExplosion() : AAimProjectile()
 {
-	damage = 60.0f;
+	damage = 100.0f;
 	InitialLifeSpan = 0.5f;
-	explosionRadius = 120.0f;
+	explosionRadius = 600.0f;
 	sphere->SetSphereRadius(explosionRadius);
 }
 
@@ -42,7 +42,7 @@ void ABloodExplosion::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			ADestructibleProp* prop = Cast<ADestructibleProp>(otherActor_);
 			if (prop)
 			{
-				prop->TakeDamage(damage);
+				prop->PropTakeDamage(damage);
 			}
 		}
 	}

@@ -33,6 +33,8 @@ public:
 	int GetCompletedQuestsCount(); //Used to know when a quest is completed
 	void RegisterUICTRL(class UPlayerUIController* uictrl_);
 
+	void ResetQuest(); //Called from new game
+
 private:
 	static TUniquePtr<QuestManager, TDefaultDelete<QuestManager>> instance;
 	QuestManager();
@@ -42,4 +44,5 @@ private:
 	int activeQuestIndex;
 	UPlayerUIController* uictrl;
 	void FindNextInCompleteQuest(); //Used to change the active quest index automatically when a quest is done
+	void RewardEXP(FString name_); //Call EXP manager and adds EXP to player
 };

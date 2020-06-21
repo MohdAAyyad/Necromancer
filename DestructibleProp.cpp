@@ -19,6 +19,8 @@ ADestructibleProp::ADestructibleProp()
 	box->SetupAttachment(root);
 
 	hp = 1.0f;
+
+	volume = pitch = 1.0f;
 }
 
 // Called when the game starts or when spawned
@@ -40,7 +42,7 @@ void ADestructibleProp::DelayedDestroy()
 	Destroy();
 }
 
-void ADestructibleProp::TakeDamage(float damage_)
+void ADestructibleProp::PropTakeDamage(float damage_)
 {
 	if (hp > 0.5f)
 	{
@@ -48,6 +50,9 @@ void ADestructibleProp::TakeDamage(float damage_)
 		UE_LOG(LogTemp, Warning, TEXT("hp is: %f"), hp);
 		if (hp <= 0.5f)
 		{
+			if (destructionSound)
+				UGameplayStatics::SpawnSoundAtLocation(GetWorld(), destructionSound, GetActorLocation(), FRotator::ZeroRotator, volume, pitch, 0.0f, destructionSound->AttenuationSettings);
+
 			mesh->ApplyDamage(2.0f, GetActorLocation(), FVector::ZeroVector, 1.0f);
 			mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			box->SetCollisionEnabled(ECollisionEnabled::NoCollision);

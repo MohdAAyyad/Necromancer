@@ -28,12 +28,12 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditDefaultsOnly, Category = Spells)
-		TArray<TSubclassOf<class AAimProjectile>> aimSpellProjectiles;
+		TArray<TSubclassOf<AAimProjectile>> aimSpellProjectiles;
 
 	UPROPERTY(EditDefaultsOnly, Category = Spells)
-		TArray<TSubclassOf<class AAimProjectile>>  bloodSpellProjectiles;
+		TArray<TSubclassOf<AAimProjectile>>  bloodSpellProjectiles;
 
 	UPROPERTY(EditDefaultsOnly, Category = Spells)
-		TArray<TSubclassOf<class ASummonBase>> summons;
+		TArray<TSubclassOf<ASummonBase>> summons;
 		
 };

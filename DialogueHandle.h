@@ -35,6 +35,7 @@ protected:
 	void UpdateDialogueUI();
 
 	class ANPC* npc;
+	class ANecromancerCharacter* necro;
 
 
 
@@ -42,8 +43,10 @@ public:
 	void SetNextDialogue(); //Called by the NPC to updated the dialogue
 	bool IsInDialogue() { return bEngagedInADialogue; }; //If in dialogue, the player cannot move or open the pause menu
 	void SetUICTRL(class UPlayerUIController* uictrl_);
+	void SetOwnerPlayer(class ANecromancerCharacter* necro_);
 	void ReadNextLine();
 	void ProcessInput();
+
 
 
 	UFUNCTION()

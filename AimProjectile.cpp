@@ -21,7 +21,7 @@ AAimProjectile::AAimProjectile()
 	sphere->SetCollisionProfileName(TEXT("Trigger"));
 	sphere->SetupAttachment(root);
 
-	mesh = CreateAbstractDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+	mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	mesh->SetCollisionProfileName("IgnoreOnlyPawn");
 	mesh->SetupAttachment(root);
 
@@ -47,6 +47,14 @@ AAimProjectile::AAimProjectile()
 	playerController = nullptr;
 	cameraShake = nullptr;
 	bBeingAbsorbed = false;
+
+	impactVolume = 1.0f;
+	impactPitch = 1.0f;
+
+	bPlaySpawnSoundOnBeginPlay = false;
+
+	audioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("Spawn Audio Component"));
+	audioComponent->SetupAttachment(root);
 }
 
 // Called when the game starts or when spawned
@@ -54,6 +62,11 @@ void AAimProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	BindSphere();
+	if (audioComponent)
+		audioComponent->Sound = spawnSound;
+
+	if (bPlaySpawnSoundOnBeginPlay)
+		audioComponent->Play();
 }
 
 // Called every frame
@@ -72,10 +85,6 @@ void AAimProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 {
 	if (otherActor_ != nullptr && otherComp_ != nullptr && otherActor_!=this)
 	{
-		//UGameplayStatics::SpawnDecalAttached(decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetRootComponent(),NAME_None,sweepResult_.ImpactPoint,sweepResult_.Normal.Rotation());
-
-	//UE_LOG(LogTemp, Warning, TEXT("Impact point %f %f %f"), sweepResult_.ImpactPoint.X, sweepResult_.ImpactPoint.Y, sweepResult_.ImpactPoint.Z);
-
 		AEnemyBase* enemy = Cast<AEnemyBase>(otherActor_);
 
 		if (enemy)
@@ -98,23 +107,19 @@ void AAimProjectile::OnOverlap(UPrimitiveComponent* overlappedComponent_,
 			ADestructibleProp* prop = Cast<ADestructibleProp>(otherActor_);
 			if (prop)
 			{
-				prop->TakeDamage(damage);
+				prop->PropTakeDamage(damage);
 				Destroy();
-			}
-			else //Yes the player can shoot the enemy's projectiles
-			{
-				AEnemyProjectile* proj = Cast<AEnemyProjectile>(otherActor_);
-				if (proj)
-					Destroy();
 			}
 		}
 
 		if (!bBeingAbsorbed)
 		{
 			if (impact)
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f));
-
-			UGameplayStatics::SpawnDecalAtLocation(GetWorld(), decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetActorLocation(), sweepResult_.Normal.Rotation());
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), impact, otherActor_->GetActorLocation(), FRotator::ZeroRotator, FVector(2.0f, 2.0f, 2.0f));
+			if (impactSound)
+				UGameplayStatics::SpawnSoundAtLocation(GetWorld(), impactSound, otherActor_->GetActorLocation(), FRotator::ZeroRotator, impactVolume, impactPitch, 0.0f, impactSound->AttenuationSettings);
+			if(decalMaterial)
+				UGameplayStatics::SpawnDecalAtLocation(GetWorld(), decalMaterial, FVector(128.0f, 128.0f, 128.0f), otherActor_->GetActorLocation(), sweepResult_.Normal.Rotation());
 		}
 	}
 }
