@@ -18,8 +18,10 @@ protected:
 		AUnTaintedBP();
 		virtual void Interact(float& value_, bool bp_) override; //If BP is true, value is updated with the pool's BP, and if false, with its HP
 
-		float bloodPoints; //The amount of BPs this pool gives
-		float healthPoints; //The amount of HPs this pool gives
+		UPROPERTY(EditAnywhere, Category ="Stats")
+			float bloodPoints; //The amount of BPs this pool gives
+		UPROPERTY(EditAnywhere, Category = "Stats")
+			float healthPoints; //The amount of HPs this pool gives
 
 
 	

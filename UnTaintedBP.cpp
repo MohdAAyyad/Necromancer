@@ -5,7 +5,7 @@
 
 AUnTaintedBP::AUnTaintedBP() : ABloodPool()
 {
-	bloodPoints = healthPoints = 20.0f;
+	bloodPoints = healthPoints = 50.0f;
 }
 
 void AUnTaintedBP::Interact(float& value_, bool bp_)
